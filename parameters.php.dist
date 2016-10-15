@@ -1,0 +1,7 @@
+<?php
+
+return [
+    'google-sheets:menus:spreadsheet-id' => '', // google sheet ID where menus is located
+    'lunches-api' => '', // lunches URI
+];
+
