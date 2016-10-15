@@ -27,5 +27,17 @@ $app->register(new Knp\Provider\ConsoleServiceProvider(), [
 $app['guzzle:lunches-api'] = function(Application $app) {
     return new Client([ 'base_uri' => $app['lunches-api'] ]);
 };
+$app['google:client'] = function (Application $app) {
+    $client = new Google_Client();
+    $client->setAuthConfig($app['root_dir'].$app['google:auth:service-account-json']);
+    $client->setScopes([Google_Service_Sheets::SPREADSHEETS_READONLY]);
+    return $client;
+};
+$app['google:sheets-service'] = function (Application $app) {
+    return new Google_Service_Sheets($app['google:client']);
+};
+$app['synchronizer:menus'] = function(Application $app) {
+    return new \Lunches\Actualizer\MenusSynchronizer($app['google:sheets-service'], $app['guzzle:lunches-api'], $app['logger']);
+};
 
 return $app;
