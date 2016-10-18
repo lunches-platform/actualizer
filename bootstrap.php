@@ -36,8 +36,11 @@ $app['google:client'] = function (Application $app) {
 $app['google:sheets-service'] = function (Application $app) {
     return new Google_Service_Sheets($app['google:client']);
 };
+$app['service:menus'] = function (Application $app) {
+    return new \Lunches\Actualizer\Service\Menus($app['guzzle:lunches-api']);
+};
 $app['synchronizer:menus'] = function(Application $app) {
-    return new \Lunches\Actualizer\MenusSynchronizer($app['google:sheets-service'], $app['guzzle:lunches-api'], $app['logger']);
+    return new \Lunches\Actualizer\Synchronizer\Menus($app['google:sheets-service'], $app['service:menus'], $app['logger']);
 };
 
 return $app;
