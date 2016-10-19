@@ -76,7 +76,7 @@ class Menus
                 $this->syncMenu(
                     $menuDate,
                     $menuType,
-                    $this->constructMenuDishes($weekDayMenu)
+                    $this->constructDishes($weekDayMenu)
                 );
             } catch (\Exception $e) {
                 if ($e instanceof ClientException || $e instanceof \RuntimeException) {
@@ -101,28 +101,14 @@ class Menus
 
         return $dishes;
     }
-    private function constructMenuDishes($weekDayMenu)
-    {
-        $dishes = $this->constructDishes($weekDayMenu);
-        $positions = range(1, count($dishes), 1);
-
-        return array_map(function ($dish, $position) {
-            return [
-                'dish' => $dish,
-                'position' => $position,
-            ];
-        }, $dishes, $positions);
-    }
     private function syncMenu(\DateTimeImmutable $date, $menuType, $menuDishes)
     {
-        $existentMenu = $this->menusService->find($date);
-        if (!$existentMenu) {
+        if (!$this->menusService->exists($date, $menuType)) {
             $this->logger->addInfo('Creating menu ...');
-            return (bool) $this->menusService->create($date, $menuType, $menuDishes);
+            $this->menusService->create($date, $menuType, $menuDishes);
+        } else {
+            $this->logger->addInfo('Such menu exists, skip');
         }
-        $this->logger->addInfo('Such menu exists, skip');
-
-        return false;
     }
 
     protected function isWeekSheetValid(array $weekDay)

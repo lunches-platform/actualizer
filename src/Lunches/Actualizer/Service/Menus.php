@@ -7,13 +7,17 @@ use GuzzleHttp\Exception\ClientException;
 
 class Menus extends AbstractService
 {
+    /**
+     * @param \DateTimeImmutable $date
+     * @return array
+     */
     public function find(\DateTimeImmutable $date)
     {
         try {
             return $this->makeRequest('GET', '/menus/'.$date->format($this->apiDateFormat));
         } catch (ClientException $e) {
             if ($e->getCode() === 404) {
-                return null;
+                return [];
             }
             throw $e;
         }
@@ -26,5 +30,16 @@ class Menus extends AbstractService
                 'products' => $menuDishes,
             ]
         ]);
+    }
+
+    public function exists(\DateTimeImmutable $date, $type)
+    {
+        $existentMenus = $this->find($date);
+        foreach ($existentMenus as $menu) {
+            if ($type === $menu['type']) {
+                return true;
+            }
+        }
+        return false;
     }
 }

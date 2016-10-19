@@ -36,12 +36,11 @@ class Dishes
         $dish = $this->findFromCache($name);
 
         if (!$dish) {
-            throw new \RuntimeException('Dish not found');
+            throw new \RuntimeException('Dish "'.$name.'" not found');
 //            $this->logger->addInfo('Dish not found. Start creating...');
 //            $dish = $this->dishesService->create($name, $type);
 //            $this->logger->addInfo('Dish created');
         }
-        $this->logger->addInfo('Single dish found');
 
         return $dish;
     }
