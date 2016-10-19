@@ -22,6 +22,22 @@ class MenusService extends AbstractService
             throw $e;
         }
     }
+
+    /**
+     * @param \DateTimeImmutable $startDate
+     * @param \DateTimeImmutable $endDate
+     * @return array
+     */
+    public function findBetween(\DateTimeImmutable $startDate, \DateTimeImmutable $endDate)
+    {
+        return $this->fallbackConvertMenus($this->makeRequest('GET', '/menus', [
+            'query' => [
+                'startDate' => $startDate->format($this->apiDateFormat),
+                'endDate' => $endDate->format($this->apiDateFormat),
+            ]
+        ]));
+    }
+
     public function create(\DateTimeImmutable $date, $type, $menuDishes)
     {
         return $this->makeRequest('PUT', '/menus/'.$date->format($this->apiDateFormat), [
@@ -41,5 +57,20 @@ class MenusService extends AbstractService
             }
         }
         return false;
+    }
+
+    /**
+     * "Products" was renamed to "Dishes", but for REST API
+     *
+     * @param array $menus
+     * @return array
+     */
+    private function fallbackConvertMenus(array $menus)
+    {
+        return array_map(function($menu) {
+            $menu['dishes'] = $menu['products'];
+            unset($menu['products']);
+            return $menu;
+        }, $menus);
     }
 }
