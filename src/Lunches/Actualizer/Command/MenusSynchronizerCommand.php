@@ -31,8 +31,9 @@ class MenusSynchronizerCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $spreadsheetId = $this->getSilexApplication()['google-sheets:menus:spreadsheet-id'];
+        $sheetRange = $this->getSilexApplication()['google-sheets:menus:spreadsheet-range'];
         try {
-            $stat = $this->getMenusSynchronizer($output)->sync($spreadsheetId);
+            $stat = $this->getMenusSynchronizer($output)->sync($spreadsheetId, $sheetRange);
             $output->writeln($stat);
         } catch (\Exception $e) {
             $this->getConsoleLogger($output)->addError($e->getMessage());

@@ -51,10 +51,10 @@ class Menus
         $this->dishesSynchronizer = $dishesSynchronizer;
     }
 
-    public function sync($spreadsheetId)
+    public function sync($spreadsheetId, $sheetRange)
     {
         $menus = [];
-        foreach ($this->readWeeks($spreadsheetId) as list($dateRange, $menuType, $weekMenus)) {
+        foreach ($this->readWeeks($spreadsheetId, $sheetRange) as list($dateRange, $menuType, $weekMenus)) {
             $this->syncWeek($dateRange, $menuType, $weekMenus);
         }
 
@@ -129,9 +129,10 @@ class Menus
 
     /**
      * @param string $spreadsheetId
+     * @param string $sheetRange
      * @return \Generator
      */
-    private function readWeeks($spreadsheetId)
+    private function readWeeks($spreadsheetId, $sheetRange)
     {
         $response = $this->sheetsService->spreadsheets->get($spreadsheetId);
         $sheets = $response->getSheets();
@@ -144,7 +145,7 @@ class Menus
         // just read the first currently
         $sheet = array_shift($sheets);
         $weekDateRange = $sheet->getProperties()->getTitle();
-        $range = $weekDateRange.'!B4:F8';
+        $range = $weekDateRange.'!'.$sheetRange;
         $response = $this->sheetsService->spreadsheets_values->get($spreadsheetId, $range, [
             'majorDimension' => 'COLUMNS',
         ]);
