@@ -3,28 +3,14 @@
 
 namespace Lunches\Actualizer\Service;
 
-use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
 
-class Menus
+class Menus extends AbstractService
 {
-    /**
-     * @var Client
-     */
-    private $client;
-    private $apiDateFormat = 'Y-m-d';
-
-    public function __construct(Client $client)
-    {
-        $this->client = $client;
-    }
-
     public function find(\DateTimeImmutable $date)
     {
         try {
-            $response = $this->client->request('GET', '/menus/'.$date->format($this->apiDateFormat));
-            $body = (string) $response->getBody();
-            return (array) json_decode($body, true);
+            return $this->makeRequest('GET', '/menus/'.$date->format($this->apiDateFormat));
         } catch (ClientException $e) {
             if ($e->getCode() === 404) {
                 return null;
@@ -34,14 +20,11 @@ class Menus
     }
     public function create(\DateTimeImmutable $date, $type, $menuDishes)
     {
-        $response = $this->client->request('PUT', '/menus/'.$date->format($this->apiDateFormat), [
+        return $this->makeRequest('PUT', '/menus/'.$date->format($this->apiDateFormat), [
             'json' => [
                 'type' => $type,
                 'products' => $menuDishes,
             ]
         ]);
-        $body = (string) $response->getBody();
-
-        return (array) json_decode($body, true);
     }
 }

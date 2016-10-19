@@ -3,7 +3,7 @@
 return [
     'google-sheets:menus:spreadsheet-id' => '', // google sheet ID where menus is located
     'lunches-api' => '', // lunches URI
-    'lunches-api.access_token' => '', // token to access secured parts of the Lunches API
+    'lunches-api:access-token' => '', // token to access secured parts of the Lunches API
     'google:auth:service-account-json' => '', // file name of the google service account json file
 ];
 

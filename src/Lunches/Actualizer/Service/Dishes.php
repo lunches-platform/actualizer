@@ -3,21 +3,10 @@
 
 namespace Lunches\Actualizer\Service;
 
-
-use GuzzleHttp\Client;
 use Webmozart\Assert\Assert;
 
-class Dishes
+class Dishes extends AbstractService
 {
-    /**
-     * @var Client
-     */
-    private $client;
-
-    public function __construct(Client $client)
-    {
-        $this->client = $client;
-    }
 
     public function fetchAll()
     {
@@ -27,7 +16,7 @@ class Dishes
     public function find($name)
     {
         return $this->makeRequest('GET', '/dishes', [
-            'query' => ['like' => $name]
+            'query' => ['like' => $name],
         ]);
     }
     public function create($name, $type)
@@ -41,12 +30,5 @@ class Dishes
                 'type' => $type,
             ]
         ]);
-    }
-
-    private function makeRequest($method, $uri, array $params = [])
-    {
-        $response = $this->client->request($method, $uri, $params);
-        $body = (string) $response->getBody();
-        return (array) json_decode($body, true);
     }
 }

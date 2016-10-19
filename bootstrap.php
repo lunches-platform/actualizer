@@ -37,10 +37,10 @@ $app['google:sheets-service'] = function (Application $app) {
     return new Google_Service_Sheets($app['google:client']);
 };
 $app['service:menus'] = function (Application $app) {
-    return new \Lunches\Actualizer\Service\Menus($app['guzzle:lunches-api']);
+    return new \Lunches\Actualizer\Service\Menus($app['guzzle:lunches-api'], $app['lunches-api:access-token']);
 };
 $app['service:dishes'] = function (Application $app) {
-    return new \Lunches\Actualizer\Service\Dishes($app['guzzle:lunches-api']);
+    return new \Lunches\Actualizer\Service\Dishes($app['guzzle:lunches-api'], $app['lunches-api:access-token']);
 };
 $app['synchronizer:menus'] = function(Application $app) {
     return new \Lunches\Actualizer\Synchronizer\Menus(
