@@ -32,12 +32,13 @@ class Menus
             throw $e;
         }
     }
-    public function create($menu)
+    public function create(\DateTimeImmutable $date, $type, $menuDishes)
     {
-        /** @var \DateTimeImmutable $date */
-        $date = $menu['date'];
-        $response = $this->client->request('POST', '/menus/'.$date->format($this->apiDateFormat), [
-            'json' => $menu,
+        $response = $this->client->request('PUT', '/menus/'.$date->format($this->apiDateFormat), [
+            'json' => [
+                'type' => $type,
+                'products' => $menuDishes,
+            ]
         ]);
         $body = (string) $response->getBody();
 
