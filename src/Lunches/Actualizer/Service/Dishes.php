@@ -19,27 +19,34 @@ class Dishes
         $this->client = $client;
     }
 
+    public function fetchAll()
+    {
+        return $this->makeRequest('GET', '/dishes');
+    }
+
     public function find($name)
     {
-        $response = $this->client->request('GET', '/dishes', [
+        return $this->makeRequest('GET', '/dishes', [
             'query' => ['like' => $name]
         ]);
-        $body = (string) $response->getBody();
-        return (array) json_decode($body, true);
     }
     public function create($name, $type)
     {
         Assert::string($name);
         Assert::string($type);
 
-        $response = $this->client->request('POST', '/dishes', [
+        return $this->makeRequest('POST', '/dishes', [
             'json' => [
                 'name' => $name,
                 'type' => $type,
             ]
         ]);
-        $body = (string) $response->getBody();
+    }
 
+    private function makeRequest($method, $uri, array $params = [])
+    {
+        $response = $this->client->request($method, $uri, $params);
+        $body = (string) $response->getBody();
         return (array) json_decode($body, true);
     }
 }
