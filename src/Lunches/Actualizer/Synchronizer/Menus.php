@@ -78,9 +78,12 @@ class Menus
                     $menuType,
                     $this->constructMenuDishes($weekDayMenu)
                 );
-            } catch (ClientException $e) {
-                $this->logger->addError("Can't sync menu due to: ". $e->getMessage());
-                continue;
+            } catch (\Exception $e) {
+                if ($e instanceof ClientException || $e instanceof \RuntimeException) {
+                    $this->logger->addError("Can't sync menu due to: ". $e->getMessage());
+                    continue;
+                }
+                throw $e;
             }
         }
     }
