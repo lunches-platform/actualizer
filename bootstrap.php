@@ -37,13 +37,13 @@ $app['google:sheets-service'] = function (Application $app) {
     return new Google_Service_Sheets($app['google:client']);
 };
 $app['service:menus'] = function (Application $app) {
-    return new \Lunches\Actualizer\Service\Menus($app['guzzle:lunches-api'], $app['lunches-api:access-token']);
+    return new \Lunches\Actualizer\Service\MenusService($app['guzzle:lunches-api'], $app['lunches-api:access-token']);
 };
 $app['service:dishes'] = function (Application $app) {
-    return new \Lunches\Actualizer\Service\Dishes($app['guzzle:lunches-api'], $app['lunches-api:access-token']);
+    return new \Lunches\Actualizer\Service\DishesService($app['guzzle:lunches-api'], $app['lunches-api:access-token']);
 };
 $app['synchronizer:menus'] = function(Application $app) {
-    return new \Lunches\Actualizer\Synchronizer\Menus(
+    return new \Lunches\Actualizer\Synchronizer\MenusSynchronizer(
         $app['google:sheets-service'],
         $app['service:menus'],
         $app['synchronizer:dishes'],
@@ -51,8 +51,15 @@ $app['synchronizer:menus'] = function(Application $app) {
     );
 };
 $app['synchronizer:dishes'] = function(Application $app) {
-    return new \Lunches\Actualizer\Synchronizer\Dishes(
+    return new \Lunches\Actualizer\Synchronizer\DishesSynchronizer(
         $app['service:dishes'],
+        $app['logger']
+    );
+};
+$app['synchronizer:orders'] = function (Application $app) {
+    return new \Lunches\Actualizer\Synchronizer\OrdersSynchronizer(
+        $app['google:sheets-service'],
+        $app['service:menus'],
         $app['logger']
     );
 };

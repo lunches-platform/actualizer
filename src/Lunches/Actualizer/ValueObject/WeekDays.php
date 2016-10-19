@@ -40,6 +40,19 @@ class WeekDays
 
     public function at($index)
     {
-        return array_key_exists($index, $this->weekDays) ? $this->weekDays[$index] : null;
+        if (!array_key_exists($index, $this->weekDays)) {
+            throw new \InvalidArgumentException('There is no week day at specified index');
+        }
+        return $this->weekDays[$index];
+    }
+
+    public function first()
+    {
+        return $this->at(0);
+    }
+
+    public function last()
+    {
+        return $this->at(count($this->weekDays) - 1);
     }
 }

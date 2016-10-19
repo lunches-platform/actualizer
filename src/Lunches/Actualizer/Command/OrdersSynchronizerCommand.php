@@ -3,23 +3,23 @@
 namespace Lunches\Actualizer\Command;
 
 use Knp\Command\Command;
-use Lunches\Actualizer\Synchronizer\MenusSynchronizer;
+use Lunches\Actualizer\Synchronizer\OrdersSynchronizer;
 use Monolog\Logger;
 use Symfony\Bridge\Monolog\Handler\ConsoleHandler;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * Class MenusSynchronizerCommand.
+ * Class OrdersSynchronizerCommand.
  */
-class MenusSynchronizerCommand extends Command
+class OrdersSynchronizerCommand extends Command
 {
     /**
      * @throws \Symfony\Component\Console\Exception\InvalidArgumentException
      */
     protected function configure()
     {
-        $this->setName('synchronizer:menus');
+        $this->setName('synchronizer:orders');
     }
 
     /**
@@ -30,10 +30,10 @@ class MenusSynchronizerCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $spreadsheetId = $this->getSilexApplication()['google-sheets:menus:spreadsheet-id'];
-        $sheetRange = $this->getSilexApplication()['google-sheets:menus:spreadsheet-range'];
+        $spreadsheetId = $this->getSilexApplication()['google-sheets:orders:spreadsheet-id'];
+        $sheetRange = $this->getSilexApplication()['google-sheets:orders:spreadsheet-range'];
         try {
-            $stat = $this->getMenusSynchronizer($output)->sync($spreadsheetId, $sheetRange);
+            $stat = $this->getOrdersSynchronizer($output)->sync($spreadsheetId, $sheetRange);
             $output->writeln($stat);
         } catch (\Exception $e) {
             $this->getConsoleLogger($output)->addError($e->getMessage());
@@ -44,12 +44,12 @@ class MenusSynchronizerCommand extends Command
 
     /**
      * @param OutputInterface $output
-     * @return MenusSynchronizer
+     * @return OrdersSynchronizer
      */
-    private function getMenusSynchronizer(OutputInterface $output)
+    private function getOrdersSynchronizer(OutputInterface $output)
     {
-        /** @var MenusSynchronizer $synchronizer */
-        $synchronizer = $this->getSilexApplication()['synchronizer:menus'];
+        /** @var OrdersSynchronizer $synchronizer */
+        $synchronizer = $this->getSilexApplication()['synchronizer:orders'];
         $synchronizer->setLogger($this->getConsoleLogger($output));
         
         return $synchronizer;

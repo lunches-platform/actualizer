@@ -5,7 +5,7 @@ namespace Lunches\Actualizer\Service;
 
 use Webmozart\Assert\Assert;
 
-class Dishes extends AbstractService
+class DishesService extends AbstractService
 {
 
     public function fetchAll()
