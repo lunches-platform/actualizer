@@ -14,6 +14,8 @@ class Dishes
     private $logger;
     /** @var  DishesService */
     private $dishesService;
+    /** @var array */
+    private $dishesCache;
 
     /**
      * Dishes constructor.
@@ -29,21 +31,17 @@ class Dishes
 
     public function syncOne($name, $type)
     {
+        $this->loadCache();
         $this->logger->addInfo('Sync dish "'.$name.'"');
-        $dishes = $this->dishesService->find($name);
+        $dish = $this->findFromCache($name);
 
-        $cnt = count($dishes);
-        if ($cnt === 0) {
-            $this->logger->addInfo('Dish not found. Start creating...');
-            $dish = $this->dishesService->create($name, $type);
-            $this->logger->addInfo('Dish created');
-        } elseif ($cnt === 1) {
-            $this->logger->addInfo('Single dish found');
-            $dish = array_shift($dishes);
-        } else {
-            // TODO more robust error handling
-            throw new \RuntimeException('Several dishes found');
+        if (!$dish) {
+            throw new \RuntimeException('Dish not found');
+//            $this->logger->addInfo('Dish not found. Start creating...');
+//            $dish = $this->dishesService->create($name, $type);
+//            $this->logger->addInfo('Dish created');
         }
+        $this->logger->addInfo('Single dish found');
 
         return $dish;
     }
@@ -54,5 +52,22 @@ class Dishes
     public function setLogger(Logger $logger)
     {
         $this->logger = $logger;
+    }
+
+    private function findFromCache($name)
+    {
+        foreach ($this->dishesCache as $dish) {
+            if ($dish['name'] === $name) {
+                return $dish;
+            }
+        }
+        return null;
+    }
+
+    private function loadCache()
+    {
+        if (null === $this->dishesCache) {
+            $this->dishesCache = $this->dishesService->fetchAll();
+        }
     }
 }
