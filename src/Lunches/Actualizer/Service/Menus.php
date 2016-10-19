@@ -3,44 +3,43 @@
 
 namespace Lunches\Actualizer\Service;
 
-use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
 
-class Menus
+class Menus extends AbstractService
 {
     /**
-     * @var Client
+     * @param \DateTimeImmutable $date
+     * @return array
      */
-    private $client;
-    private $apiDateFormat = 'Y-m-d';
-
-    public function __construct(Client $client)
-    {
-        $this->client = $client;
-    }
-
     public function find(\DateTimeImmutable $date)
     {
         try {
-            $response = $this->client->request('GET', '/menus/'.$date->format($this->apiDateFormat));
-            $body = (string) $response->getBody();
-            return (array) json_decode($body, true);
+            return $this->makeRequest('GET', '/menus/'.$date->format($this->apiDateFormat));
         } catch (ClientException $e) {
             if ($e->getCode() === 404) {
-                return null;
+                return [];
             }
             throw $e;
         }
     }
-    public function create($menu)
+    public function create(\DateTimeImmutable $date, $type, $menuDishes)
     {
-        /** @var \DateTimeImmutable $date */
-        $date = $menu['date'];
-        $response = $this->client->request('POST', '/menus/'.$date->format($this->apiDateFormat), [
-            'json' => $menu,
+        return $this->makeRequest('PUT', '/menus/'.$date->format($this->apiDateFormat), [
+            'json' => [
+                'type' => $type,
+                'products' => $menuDishes,
+            ]
         ]);
-        $body = (string) $response->getBody();
+    }
 
-        return (array) json_decode($body, true);
+    public function exists(\DateTimeImmutable $date, $type)
+    {
+        $existentMenus = $this->find($date);
+        foreach ($existentMenus as $menu) {
+            if ($type === $menu['type']) {
+                return true;
+            }
+        }
+        return false;
     }
 }
