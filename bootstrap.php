@@ -56,5 +56,12 @@ $app['synchronizer:dishes'] = function(Application $app) {
         $app['logger']
     );
 };
+$app['synchronizer:orders'] = function (Application $app) {
+    return new \Lunches\Actualizer\Synchronizer\OrdersSynchronizer(
+        $app['google:sheets-service'],
+        $app['service:menus'],
+        $app['logger']
+    );
+};
 
 return $app;

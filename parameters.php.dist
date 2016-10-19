@@ -1,8 +1,10 @@
 <?php
 
 return [
-    'google-sheets:menus:spreadsheet-id' => '', // google sheet ID where menus is located
-    'google-sheets:menus:spreadsheet-range' => 'B4:F8', // spreadsheet range where menu is located on a sheet
+    'google-sheets:menus:spreadsheet-id' => '', // google sheet ID where menus are located
+    'google-sheets:menus:spreadsheet-range' => 'B4:F8', // spreadsheet range where menus are located on a sheet
+    'google-sheets:orders:spreadsheet-id' => '', // google sheet ID where orders are located
+    'google-sheets:orders:spreadsheet-range' => '', // spreadsheet range where orders are located on a sheet
     'lunches-api' => '', // lunches URI
     'lunches-api:access-token' => '', // token to access secured parts of the Lunches API
     'google:auth:service-account-json' => '', // file name of the google service account json file
