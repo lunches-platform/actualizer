@@ -5,7 +5,7 @@ namespace Lunches\Actualizer\Service;
 
 use GuzzleHttp\Exception\ClientException;
 
-class Menus extends AbstractService
+class MenusService extends AbstractService
 {
     /**
      * @param \DateTimeImmutable $date

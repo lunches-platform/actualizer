@@ -7,13 +7,12 @@ use GuzzleHttp\Exception\ClientException;
 use Lunches\Actualizer\ValueObject\WeekDays;
 use Monolog\Logger;
 use Webmozart\Assert\Assert;
-use Lunches\Actualizer\Service\Menus as MenusService;
-use Lunches\Actualizer\Synchronizer\Dishes as DishesSynchronizer;
+use Lunches\Actualizer\Service\MenusService;
 
 /**
- * Class Menus
+ * Class MenusSynchronizer
  */
-class Menus
+class MenusSynchronizer
 {
     /** @var Logger */
     private $logger;

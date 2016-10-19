@@ -3,7 +3,7 @@
 namespace Lunches\Actualizer\Command;
 
 use Knp\Command\Command;
-use Lunches\Actualizer\Synchronizer\Menus AS MenusSynchronizer;
+use Lunches\Actualizer\Synchronizer\MenusSynchronizer;
 use Monolog\Logger;
 use Symfony\Bridge\Monolog\Handler\ConsoleHandler;
 use Symfony\Component\Console\Input\InputInterface;

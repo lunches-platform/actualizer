@@ -3,12 +3,12 @@
 namespace Lunches\Actualizer\Synchronizer;
 
 use Monolog\Logger;
-use Lunches\Actualizer\Service\Dishes as DishesService;
+use Lunches\Actualizer\Service\DishesService;
 
 /**
- * Class Dishes
+ * Class DishesSynchronizer
  */
-class Dishes
+class DishesSynchronizer
 {
     /** @var Logger */
     private $logger;
@@ -18,7 +18,7 @@ class Dishes
     private $dishesCache;
 
     /**
-     * Dishes constructor.
+     * DishesSynchronizer constructor.
      *
      * @param DishesService $dishesService
      * @param Logger $logger
