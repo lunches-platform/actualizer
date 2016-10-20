@@ -31,6 +31,7 @@ class DishesSynchronizer
 
     public function syncOne($name, $type)
     {
+        $name = trim($name);
         $this->loadCache();
         $this->logger->addInfo('Sync dish "'.$name.'"');
         $dish = $this->findFromCache($name);
