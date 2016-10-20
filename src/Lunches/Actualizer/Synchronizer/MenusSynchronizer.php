@@ -149,8 +149,8 @@ class MenusSynchronizer
         /** @var \Google_Service_Sheets_Sheet[] $sheets */
         foreach ($sheets as $sheet) {
 
-            $weekDateRange = $sheet->getProperties()->getTitle();
-            $range = $weekDateRange.'!'.$sheetRange;
+            $sheetTitle = $sheet->getProperties()->getTitle();
+            $range = $sheetTitle.'!'.$sheetRange;
             $response = $this->sheetsService->spreadsheets_values->get($spreadsheetId, $range, [
                 'majorDimension' => 'COLUMNS',
             ]);
@@ -158,8 +158,13 @@ class MenusSynchronizer
             /** @var array $weekDayMenus */
             $weekDayMenus = $response->getValues();
 
-            yield [ $weekDateRange, $menuType, $weekDayMenus ];
+            yield [ $this->getDateRange($sheetTitle), $menuType, $weekDayMenus ];
         }
+    }
+
+    private function getDateRange($sheetTitle)
+    {
+        return trim(str_replace('- diet', '', mb_strtolower($sheetTitle)));
     }
 
     private function determineMenuType($sheetTitle)
