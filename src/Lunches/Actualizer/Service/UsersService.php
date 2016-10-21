@@ -9,9 +9,15 @@ class UsersService extends AbstractService
 {
     public function findOne($userName)
     {
-        return array_shift($this->makeRequest('GET', '/users', [
+        $users = $this->find($userName);
+        return array_shift($users);
+    }
+
+    public function find($userName)
+    {
+        return $this->makeRequest('GET', '/users', [
             'query' => ['like' => $userName],
-        ]));
+        ]);
     }
     public function create($userName, $address)
     {
