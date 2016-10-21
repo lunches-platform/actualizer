@@ -29,6 +29,11 @@ class Menu
     private static $types = ['diet', 'regular'];
     private static $dateFormat = 'Y-m-d';
 
+    const DISH_TYPE_MEAT = 'meat';
+    const DISH_TYPE_FISH = 'fish';
+    const DISH_TYPE_SALAD = 'salad';
+    const DISH_TYPE_GARNISH = 'garnish';
+
     public function __construct($id, $date, $type, array $dishes)
     {
         Assert::numeric($id);
@@ -37,6 +42,16 @@ class Menu
         $this->setDate($date);
         $this->setType($type);
         $this->setDishes($dishes);
+    }
+
+    public function isFull()
+    {
+        $dishTypes = $this->cookingDishTypes();
+
+        return
+            (in_array(self::DISH_TYPE_MEAT, $dishTypes, true) || in_array(self::DISH_TYPE_FISH, $dishTypes, true)) &&
+            in_array(self::DISH_TYPE_GARNISH, $dishTypes, true) &&
+            in_array(self::DISH_TYPE_SALAD, $dishTypes, true);
     }
 
     public function withoutMeat()
@@ -79,6 +94,12 @@ class Menu
         return $this->newDishes(
             $this->onlyDishType('garnish')
         );
+    }
+
+    public function isCookingAt(\DateTimeImmutable $date)
+    {
+        /** @noinspection TypeUnsafeComparisonInspection */
+        return $this->date == $date;
     }
 
     /**
@@ -171,5 +192,6 @@ class Menu
 
         $this->dishes = $dishes;
     }
+
 
 }
