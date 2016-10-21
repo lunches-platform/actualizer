@@ -5,12 +5,12 @@ namespace Lunches\Actualizer\Synchronizer;
 use Google_Service_Sheets;
 use GuzzleHttp\Exception\ClientException;
 use Lunches\Actualizer\Entity\Menu;
+use Lunches\Actualizer\Entity\Order;
 use Lunches\Actualizer\Service\MenusService;
 use Lunches\Actualizer\Service\OrdersService;
 use Lunches\Actualizer\Service\UsersService;
 use Lunches\Actualizer\ValueObject\WeekDays;
 use Monolog\Logger;
-use GuzzleHttp\Client;
 use Webmozart\Assert\Assert;
 
 /**
@@ -20,55 +20,6 @@ class OrdersSynchronizer
 {
     /** @var Logger */
     private $logger;
-
-    const BIG = 'Большая';
-    const BIG_NO_MEAT = 'Большая без мяса';
-    const BIG_NO_SALAD = 'Большая без салата';
-    const BIG_NO_GARNISH= 'Большая без гарнира';
-    const MEDIUM = 'Средняя';
-    const MEDIUM_NO_MEAT = 'Средняя без мяса';
-    const MEDIUM_NO_SALAD = 'Средняя без салата';
-    const MEDIUM_NO_GARNISH= 'Средняя без гарнира';
-    const ONLY_MEAT = 'Только мясо';
-    const ONLY_SALAD = 'Только салат';
-    const ONLY_GARNISH = 'Только гарнир';
-
-    private static $orderVariants = [
-        self::BIG,
-        self::BIG_NO_MEAT,
-        self::BIG_NO_SALAD,
-        self::BIG_NO_GARNISH,
-        self::MEDIUM,
-        self::MEDIUM_NO_MEAT,
-        self::MEDIUM_NO_SALAD,
-        self::MEDIUM_NO_GARNISH,
-        self::ONLY_MEAT,
-        self::ONLY_SALAD,
-        self::ONLY_GARNISH,
-    ];
-
-    /**
-     * Cache property which stores map of 'order string' to menu dishes
-     *
-     * Example:
-     * [
-     *     '03.10.2016' => [
-     *         'Большая' => ['dishes' => [...]],
-     *         'Средняя без мяса' => ... ,
-     *     ],
-     *     ...
-     * ]
-     * @var array
-     */
-    private $lastWeekMenuVariants;
-    /**
-     * @var string
-     */
-    private $lunchesApiDateFormat = 'Y-m-d';
-    /**
-     * @var WeekDays
-     */
-    private $lastWeekDays;
     /**
      * @var Google_Service_Sheets
      */
@@ -112,13 +63,9 @@ class OrdersSynchronizer
     public function sync($spreadsheetId, $sheetRange)
     {
         foreach ($this->readWeeks($spreadsheetId, $sheetRange) as list($dateRange, $weekOrders)) {
-
             try {
-                $this->lastWeekDays = new WeekDays($dateRange);
-                $this->lastWeekMenuVariants = $this->generateMenuVariants($this->fetchWeekMenus());
-
-                $orders = $this->createFromRange($weekOrders);
-
+                $weekMenus = $this->getWeekMenus(new WeekDays($dateRange));
+                $orders = $this->createFromRange($weekOrders, $weekMenus);
                 $this->syncList($orders);
             } catch (\Exception $e) {
                 $this->logger->addError("Can't sync week orders due to: ". $e->getMessage());
@@ -130,14 +77,17 @@ class OrdersSynchronizer
     /**
      * Example of $range:
      * [
-     *     ['User name1', 'monday order', 'Средняя', 'Большая без салата', ...],
+     *     ['User name1', 'monday order str', 'Средняя', 'Большая без салата', ...],
      *     ...
      * ]
+     * Range is a matrix, where first column contains users and next 1-5 columns contain user orders for the week
+     *
      * @param array $range
+     * @param array $weekMenus
      * @return \Generator
      * @throws \Exception
      */
-    private function createFromRange(array $range)
+    private function createFromRange(array $range, array $weekMenus)
     {
         $range = array_filter($range, function ($item) {
             return is_array($item) && $item;
@@ -152,97 +102,109 @@ class OrdersSynchronizer
             }
             try {
                 $user = $this->getUser($userName, $lastAddress);
-                $orders = $this->createWeekOrders($user, $userWeekOrders);
-                foreach ($orders as $order) {
+                $userOrders = $this->createWeekOrders($user, $userWeekOrders, $weekMenus);
+                foreach ($userOrders as $order) {
                     yield $order;
                 }
-            } catch (\RuntimeException $e) {
-                // TODO log
+            } catch (\Exception $e) {
+                $this->logger->addError("Can't create {$userName}'s week orders due to: ". $e->getMessage());
                 continue;
             }
         }
     }
+
     /**
+     * Create all user orders for all week
+     *
      * @param array $user
-     * @param array $sourceOrders
-     * @return array
+     * @param array $strOrders
+     * @param Menu[] $menus
+     * @return \Generator
      * @throws \Exception
      */
-    private function createWeekOrders($user, $sourceOrders)
+    private function createWeekOrders($user, $strOrders, array $menus)
     {
-        $orders = [];
-        if (!$sourceOrders) {
-            return $orders;
+        if (!$strOrders) {
+            yield;
         }
 
-        foreach ($sourceOrders as $i => $weekDayOrder) {
+        foreach ($strOrders as $i => $weekDayOrder) {
+            // user can skip several days
             if (!$weekDayOrder) {
                 continue;
             }
             try {
-                $orderDate = $this->lastWeekDays->at($i)->format($this->lunchesApiDateFormat);
+                $menu = $this->getWeekDayMenu($menus, $i);
+                $order = new Order($shipmentDate = $menu->date(true), $user['id'], $user['address']);
+                $order->setItemsFromOrderString($menu, $weekDayOrder);
 
-                $orders[] = $this->constructOrder($user, $orderDate, $weekDayOrder);
+                yield $order;
 
             } catch (\Exception $e) {
                 if ($e instanceof \InvalidArgumentException) {
-                    $msg = sprintf("%s's Order on %s has not been created due to: %s", $user['fullname'], isset($orderDate) ? $orderDate:'', $e->getMessage());
+                    $date = isset($shipmentDate) ? $shipmentDate : '';
+                    $msg = sprintf("%s's Order on %s has not been created due to: %s", $user['fullname'], $date, $e->getMessage());
                     $this->logger->addWarning($msg);
                     continue;
                 }
                 throw $e;
             }
         }
-
-        return $orders;
     }
-    private function syncList($sourceOrders)
+
+    /**
+     * @param Menu[] $menus
+     * @param int $weekDayIndex Index from 0 to 4
+     * @return Menu
+     */
+    private function getWeekDayMenu($menus, $weekDayIndex)
     {
-        foreach ($sourceOrders as $sourceOrder) {
+        Assert::keyExists($menus, $weekDayIndex);
+        Assert::isInstanceOf($menus[$weekDayIndex], Menu::class, 'Menu not found');
+
+        return $menus[$weekDayIndex];
+    }
+
+    /**
+     * Get array of strongly 5 values, when there is no menu - leave value as NULL
+     *
+     * @param WeekDays $weekDays
+     * @return array
+     */
+    private function getWeekMenus(WeekDays $weekDays)
+    {
+        $menus = $this->menusService->findBetween(
+            $weekDays->first(),
+            $weekDays->last()
+        );
+        $weekMenus = array_fill(0, 5, null);
+        foreach ($weekMenus as $i => &$value) {
+            foreach ($menus as $menu) {
+                if ($menu->date()->format('w') - 1 === $i) {
+                    $value = $menu;
+                }
+            }
+        }
+        return $weekMenus;
+    }
+
+    /**
+     * @param \Generator $orders
+     */
+    private function syncList($orders)
+    {
+        foreach ($orders as $order) {
             // TODO idempotent PUT, but what about order creation?
             try {
-                $destOrder = $this->ordersService->findOne($sourceOrder);
-                if (!$destOrder) {
-                    $destOrder = $this->ordersService->create($sourceOrder);
+                $existentOrder = $this->ordersService->findOne($order);
+                if (!$existentOrder) {
+                    $this->ordersService->create($order);
                 }
             } catch (ClientException $e) {
-                $this->logger->addWarning("Can't sync order due to: ".$e->getMessage());
+                $this->logger->addWarning("Can't sync user #{$order->userId()} order due to: ".$e->getMessage());
                 continue;
             }
         }
-    }
-    private function generateMenuVariants(array $menus)
-    {
-        $variants = [];
-        foreach ($menus as $weekDayMenu) {
-
-            $withoutMeat = $weekDayMenu->withoutMeat();
-            $withoutSalad = $weekDayMenu->withoutSalad();
-            $withoutGarnish = $weekDayMenu->withoutGarnish();
-
-            /** @var string $date */
-            $date = $weekDayMenu->date($toString = true);
-
-            $variants[$date] = [
-                self::BIG => $weekDayMenu,
-                self::MEDIUM => $weekDayMenu,
-
-                self::BIG_NO_MEAT => $withoutMeat,
-                self::MEDIUM_NO_MEAT => $withoutMeat,
-
-                self::BIG_NO_SALAD => $withoutSalad,
-                self::MEDIUM_NO_SALAD => $withoutSalad,
-
-                self::BIG_NO_GARNISH => $withoutGarnish,
-                self::MEDIUM_NO_GARNISH => $withoutGarnish,
-
-                self::ONLY_MEAT => $weekDayMenu->onlyMeat(),
-                self::ONLY_SALAD => $weekDayMenu->onlySalad(),
-                self::ONLY_GARNISH => $weekDayMenu->onlyGarnish(),
-            ];
-        }
-
-        return $variants;
     }
 
     /**
@@ -255,6 +217,7 @@ class OrdersSynchronizer
      */
     private function getUser($userName, $address)
     {
+        // TODO implement UserSynchronizer
         $user = $this->usersService->findOne($userName);
 
         if (!$user) {
@@ -265,68 +228,6 @@ class OrdersSynchronizer
         }
 
         return $user;
-    }
-
-    /**
-     * @return Menu[]
-     */
-    private function fetchWeekMenus()
-    {
-        $menus = $this->menusService->findBetween(
-            $this->lastWeekDays->first(),
-            $this->lastWeekDays->last()
-        );
-        return array_map(function($menu) {
-            return Menu::fromArray($menu);
-        }, $menus);
-    }
-
-    private function getOrderedDishes($orderDate, $userOrder)
-    {
-        Assert::oneOf($userOrder, self::$orderVariants);
-        Assert::keyExists($this->lastWeekMenuVariants, $orderDate, 'Menus not found for '.$orderDate);
-
-        $allMenus = $this->lastWeekMenuVariants[$orderDate];
-        Assert::keyExists($allMenus, $userOrder, "Menu is not available for '{$userOrder}'");
-
-        /** @var Menu $orderedMenu */
-        $orderedMenu = $allMenus[$userOrder];
-
-        return $orderedMenu->dishes();
-    }
-
-    /**
-     * @param array $user
-     * @param string $shipmentDate
-     * @param string $orderStr
-     * @return array|null
-     *
-     */
-    private function constructOrder($user, $shipmentDate, $orderStr)
-    {
-        return [
-            'items' => $this->constructLineItems($orderStr, $shipmentDate),
-            'userId' => $user['id'],
-            'address' => $user['address'],
-            'shipmentDate' => $shipmentDate,
-        ];
-    }
-
-    private function constructLineItems($orderStr, $shipmentDate)
-    {
-        $size = 'medium';
-        if (in_array($orderStr, [ self::BIG, self::BIG_NO_MEAT, self::BIG_NO_SALAD, self::BIG_NO_GARNISH ], true)) {
-            $size = 'big';
-        }
-
-        $dishes = $this->getOrderedDishes($shipmentDate, $orderStr);
-
-        return array_map(function ($dish) use ($size) {
-            return [
-                'dishId' => $dish['id'],
-                'size' => $size,
-            ];
-        }, $dishes);
     }
     /**
      * @param string $spreadsheetId
