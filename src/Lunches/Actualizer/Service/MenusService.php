@@ -16,7 +16,8 @@ class MenusService extends AbstractService
     public function find(\DateTimeImmutable $date)
     {
         try {
-            return $this->makeRequest('GET', '/menus/'.$date->format($this->apiDateFormat));
+            $menus = $this->makeRequest('GET', '/menus/'.$date->format($this->apiDateFormat));
+            return array_map([$this, 'fallbackConvertMenu'], $menus);
         } catch (ClientException $e) {
             if ($e->getCode() === 404) {
                 return [];
@@ -28,16 +29,20 @@ class MenusService extends AbstractService
     /**
      * @param \DateTimeImmutable $startDate
      * @param \DateTimeImmutable $endDate
-     * @return array
+     * @return Menu[]
      */
     public function findBetween(\DateTimeImmutable $startDate, \DateTimeImmutable $endDate)
     {
-        return $this->fallbackConvertMenus($this->makeRequest('GET', '/menus', [
+        $menus = $this->makeRequest('GET', '/menus', [
             'query' => [
                 'startDate' => $startDate->format($this->apiDateFormat),
                 'endDate' => $endDate->format($this->apiDateFormat),
             ]
-        ]));
+        ]);
+        $menus = array_map([$this, 'fallbackConvertMenu'], $menus);
+        $menus = array_map([$this, 'fromArray'], $menus);
+
+        return $menus;
     }
 
     public function create(Menu $menu)
@@ -64,15 +69,18 @@ class MenusService extends AbstractService
     /**
      * "Products" was renamed to "Dishes", but for REST API
      *
-     * @param array $menus
+     * @param array $menu
      * @return array
      */
-    private function fallbackConvertMenus(array $menus)
+    private function fallbackConvertMenu(array $menu)
     {
-        return array_map(function($menu) {
-            $menu['dishes'] = $menu['products'];
-            unset($menu['products']);
-            return $menu;
-        }, $menus);
+        $menu['dishes'] = $menu['products'];
+        unset($menu['products']);
+        return $menu;
+    }
+
+    private function fromArray(array $menu)
+    {
+        return Menu::fromArray($menu);
     }
 }
