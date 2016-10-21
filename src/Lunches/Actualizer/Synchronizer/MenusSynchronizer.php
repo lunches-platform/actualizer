@@ -54,7 +54,12 @@ class MenusSynchronizer
     {
         $menus = [];
         foreach ($this->readWeeks($spreadsheetId, $sheetRange) as list($dateRange, $menuType, $weekMenus)) {
-            $this->syncWeek($dateRange, $menuType, $weekMenus);
+            try {
+                $this->syncWeek($dateRange, $menuType, $weekMenus);
+            } catch (\Exception $e) {
+                $this->logger->addError('Reject sync for the whole week (sheet) due to: '.$e->getMessage());
+                continue;
+            }
         }
 
         return $menus;
@@ -141,18 +146,25 @@ class MenusSynchronizer
             yield;
         }
 
-        // just read the first currently
-        $sheet = array_shift($sheets);
-        $weekDateRange = $sheet->getProperties()->getTitle();
-        $range = $weekDateRange.'!'.$sheetRange;
-        $response = $this->sheetsService->spreadsheets_values->get($spreadsheetId, $range, [
-            'majorDimension' => 'COLUMNS',
-        ]);
+        /** @var \Google_Service_Sheets_Sheet[] $sheets */
+        foreach ($sheets as $sheet) {
 
-        /** @var array $weekDayMenus */
-        $weekDayMenus = $response->getValues();
+            $sheetTitle = $sheet->getProperties()->getTitle();
+            $range = $sheetTitle.'!'.$sheetRange;
+            $response = $this->sheetsService->spreadsheets_values->get($spreadsheetId, $range, [
+                'majorDimension' => 'COLUMNS',
+            ]);
 
-        yield [ $weekDateRange, $menuType, $weekDayMenus ];
+            /** @var array $weekDayMenus */
+            $weekDayMenus = $response->getValues();
+
+            yield [ $this->getDateRange($sheetTitle), $menuType, $weekDayMenus ];
+        }
+    }
+
+    private function getDateRange($sheetTitle)
+    {
+        return trim(str_replace('- diet', '', mb_strtolower($sheetTitle)));
     }
 
     private function determineMenuType($sheetTitle)
