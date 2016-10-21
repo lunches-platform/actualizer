@@ -93,6 +93,13 @@ class Menu
         return $this->date;
     }
 
+    public function cookingDishTypes()
+    {
+        return array_unique(array_map(function ($dish) {
+            return $dish['type'];
+        }, $this->dishes));
+    }
+
     public function dishes()
     {
         return $this->dishes;

@@ -128,10 +128,19 @@ class PricesGenerator
     }
     public function generate(Menu $menu)
     {
-        foreach (self::$priceVariants as $variant) {
+        $priceVariants = array_filter(self::$priceVariants, $this->onlyMenuDishes($menu));
+
+        foreach ($priceVariants as $variant) {
             $items = $this->createItems($menu, $variant['size'], $variant['contents']);
             $this->pricesService->create($menu->date(), $variant['value'], $items);
         }
+    }
+
+    private function onlyMenuDishes(Menu $menu)
+    {
+        return function ($variant) use ($menu) {
+            return count(array_diff($variant['contents'], $menu->cookingDishTypes())) === 0;
+        };
     }
 
     private function createItems(Menu $menu, $size, array $contents)
