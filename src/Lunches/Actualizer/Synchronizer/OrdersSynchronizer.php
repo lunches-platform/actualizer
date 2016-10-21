@@ -4,6 +4,7 @@ namespace Lunches\Actualizer\Synchronizer;
 
 use Google_Service_Sheets;
 use GuzzleHttp\Exception\ClientException;
+use Lunches\Actualizer\Entity\Menu;
 use Lunches\Actualizer\Service\MenusService;
 use Lunches\Actualizer\Service\UsersService;
 use Lunches\Actualizer\ValueObject\WeekDays;
@@ -208,24 +209,29 @@ class OrdersSynchronizer
         $variants = [];
         foreach ($menus as $weekDayMenu) {
 
-            $withoutMeat = $this->removeMenuDishes($weekDayMenu, ['meat']);
-            $withoutSalad = $this->removeMenuDishes($weekDayMenu, ['salad']);
-            $withoutGarnish = $this->removeMenuDishes($weekDayMenu, ['garnish']);
+            $withoutMeat = $weekDayMenu->withoutMeat();
+            $withoutSalad = $weekDayMenu->withoutSalad();
+            $withoutGarnish = $weekDayMenu->withoutGarnish();
 
-            Assert::keyExists($weekDayMenu, 'date');
+            /** @var string $date */
+            $date = $weekDayMenu->date($toString = true);
 
-            $variants[$weekDayMenu['date']] = [
+            $variants[$date] = [
                 self::BIG => $weekDayMenu,
                 self::MEDIUM => $weekDayMenu,
+
                 self::BIG_NO_MEAT => $withoutMeat,
                 self::MEDIUM_NO_MEAT => $withoutMeat,
+
                 self::BIG_NO_SALAD => $withoutSalad,
                 self::MEDIUM_NO_SALAD => $withoutSalad,
+
                 self::BIG_NO_GARNISH => $withoutGarnish,
                 self::MEDIUM_NO_GARNISH => $withoutGarnish,
-                self::ONLY_MEAT => $this->removeMenuDishes($weekDayMenu, ['garnish', 'salad']),
-                self::ONLY_SALAD => $this->removeMenuDishes($weekDayMenu, ['garnish', 'meat']),
-                self::ONLY_GARNISH => $this->removeMenuDishes($weekDayMenu, ['salad', 'meat']),
+
+                self::ONLY_MEAT => $weekDayMenu->onlyMeat(),
+                self::ONLY_SALAD => $weekDayMenu->onlySalad(),
+                self::ONLY_GARNISH => $weekDayMenu->onlyGarnish(),
             ];
         }
 
@@ -255,34 +261,18 @@ class OrdersSynchronizer
     }
 
     /**
-     * @return array
+     * @return Menu[]
      */
     private function fetchWeekMenus()
     {
-        return $this->menusService->findBetween(
+        $menus = $this->menusService->findBetween(
             $this->lastWeekDays->first(),
             $this->lastWeekDays->last()
         );
+        return array_map(function($menu) {
+            return Menu::fromArray($menu);
+        }, $menus);
     }
-
-    private function removeMenuDishes($menu, array $dishTypes)
-    {
-        Assert::keyExists($menu, 'dishes');
-
-        /** @var array $dishes */
-        $dishes = $menu['dishes'];
-        foreach ($dishes as $key => $dish) {
-
-            Assert::keyExists($dish, 'type');
-
-            if (in_array($dish['type'], $dishTypes, false)) {
-                unset($menu['dishes'][$key]);
-            }
-        }
-        return $menu;
-    }
-
-
 
 
     private function createOrder(array $sourceOrder)
@@ -312,14 +302,10 @@ class OrdersSynchronizer
         $allMenus = $this->lastWeekMenuVariants[$orderDate];
         Assert::keyExists($allMenus, $userOrder, "Menu is not available for '{$userOrder}'");
 
+        /** @var Menu $orderedMenu */
         $orderedMenu = $allMenus[$userOrder];
-        Assert::keyExists($orderedMenu, 'dishes');
 
-        $dishes = $orderedMenu['dishes'];
-        Assert::isArray($dishes);
-        Assert::notEmpty($dishes);
-
-        return $dishes;
+        return $orderedMenu->dishes();
     }
 
     /**
