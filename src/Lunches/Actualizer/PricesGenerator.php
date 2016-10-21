@@ -147,8 +147,6 @@ class PricesGenerator
             ];
         }, $dishes);
 
-        return [
-            'items' => $items,
-        ];
+        return $items;
     }
 }

@@ -3,7 +3,8 @@
 namespace Lunches\Actualizer\Synchronizer;
 
 use Google_Service_Sheets;
-use GuzzleHttp\Exception\ClientException;
+use Lunches\Actualizer\Entity\Menu;
+use Lunches\Actualizer\PricesGenerator;
 use Lunches\Actualizer\ValueObject\WeekDays;
 use Monolog\Logger;
 use Webmozart\Assert\Assert;
@@ -28,12 +29,17 @@ class MenusSynchronizer
      * @var DishesSynchronizer
      */
     private $dishesSynchronizer;
+    /**
+     * @var PricesGenerator
+     */
+    private $pricesGenerator;
 
     /**
      * MenusSynchronizer constructor.
      * @param Google_Service_Sheets $sheetsService
      * @param MenusService $menusService
      * @param DishesSynchronizer $dishesSynchronizer
+     * @param PricesGenerator $pricesGenerator
      * @param Logger $logger
      * @internal param Client $apiClient
      */
@@ -41,6 +47,7 @@ class MenusSynchronizer
         Google_Service_Sheets $sheetsService,
         MenusService $menusService,
         DishesSynchronizer $dishesSynchronizer,
+        PricesGenerator $pricesGenerator,
         Logger $logger
     )
     {
@@ -48,6 +55,7 @@ class MenusSynchronizer
         $this->sheetsService = $sheetsService;
         $this->menusService = $menusService;
         $this->dishesSynchronizer = $dishesSynchronizer;
+        $this->pricesGenerator = $pricesGenerator;
     }
 
     public function sync($spreadsheetId, $sheetRange)
@@ -78,12 +86,10 @@ class MenusSynchronizer
 
             try {
                 $this->syncMenu(
-                    $menuDate,
-                    $menuType,
-                    $this->constructDishes($weekDayMenu)
+                    new Menu(111, $menuDate, $menuType, $this->constructDishes($weekDayMenu))
                 );
             } catch (\Exception $e) {
-                if ($e instanceof ClientException || $e instanceof \RuntimeException) {
+                if ($e instanceof \RuntimeException) {
                     $this->logger->addError("Can't sync menu due to: ". $e->getMessage());
                     continue;
                 }
@@ -105,22 +111,24 @@ class MenusSynchronizer
 
         return $dishes;
     }
-    private function syncMenu(\DateTimeImmutable $date, $menuType, $menuDishes)
+    private function syncMenu(Menu $menu)
     {
-        if (!$this->menusService->exists($date, $menuType)) {
+        $this->pricesGenerator->generate($menu);
+
+        if (!$this->menusService->exists($menu)) {
             $this->logger->addInfo('Creating menu ...');
-            $this->menusService->create($date, $menuType, $menuDishes);
+            $this->menusService->create($menu);
         } else {
             $this->logger->addInfo('Such menu exists, skip');
         }
     }
 
-    protected function isWeekSheetValid(array $weekDay)
+    private function isWeekSheetValid(array $weekDay)
     {
         return count($weekDay) === 5;
     }
 
-    protected function notHoliday(array $weekDay)
+    private function notHoliday(array $weekDay)
     {
         foreach ($weekDay as $item) {
             if (mb_strtolower($item) === 'holiday') {

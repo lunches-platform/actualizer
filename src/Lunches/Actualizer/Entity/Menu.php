@@ -85,7 +85,7 @@ class Menu
      * @param bool $toString
      * @return \DateTimeImmutable|string
      */
-    public function date($toString = true)
+    public function date($toString = false)
     {
         if ($toString === true) {
             return $this->date->format(self::$dateFormat);
