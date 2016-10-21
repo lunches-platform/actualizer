@@ -10,22 +10,8 @@ class PricesService extends AbstractService
         return $this->makeRequest('PUT', '/prices/'.$date->format($this->apiDateFormat), [
             'json' => [
                 'value' => $value,
-                'items' => $this->fallbackConvertItems($items)
+                'items' => $items
             ]
         ]);
-    }
-    /**
-     * "Products" was renamed to "Dishes", but for REST API
-     *
-     * @param array $items
-     * @return array
-     */
-    private function fallbackConvertItems(array $items)
-    {
-        return array_map(function($item) {
-            $item['productId'] = $item['dishId'];
-            unset($item['dishId']);
-            return $item;
-        }, $items);
     }
 }
