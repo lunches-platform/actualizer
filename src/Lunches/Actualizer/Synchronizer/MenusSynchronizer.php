@@ -113,11 +113,12 @@ class MenusSynchronizer
     }
     private function syncMenu(Menu $menu)
     {
-        $this->pricesGenerator->generate($menu);
-
         if (!$this->menusService->exists($menu)) {
             $this->logger->addInfo('Creating menu ...');
             $this->menusService->create($menu);
+
+            $this->logger->addInfo('Generate menu prices...');
+            $this->pricesGenerator->generate($menu);
         } else {
             $this->logger->addInfo('Such menu exists, skip');
         }

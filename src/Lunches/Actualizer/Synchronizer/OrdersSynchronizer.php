@@ -4,7 +4,10 @@ namespace Lunches\Actualizer\Synchronizer;
 
 use Google_Service_Sheets;
 use GuzzleHttp\Exception\ClientException;
+use Lunches\Actualizer\Entity\Menu;
 use Lunches\Actualizer\Service\MenusService;
+use Lunches\Actualizer\Service\OrdersService;
+use Lunches\Actualizer\Service\UsersService;
 use Lunches\Actualizer\ValueObject\WeekDays;
 use Monolog\Logger;
 use GuzzleHttp\Client;
@@ -74,20 +77,36 @@ class OrdersSynchronizer
      * @var MenusService
      */
     private $menusService;
+    /**
+     * @var UsersService
+     */
+    private $usersService;
+    /**
+     * @var OrdersService
+     */
+    private $ordersService;
 
     /**
      * OrdersSynchronizer constructor.
      *
      * @param Google_Service_Sheets $sheetsService
      * @param MenusService $menusService
+     * @param UsersService $usersService
+     * @param OrdersService $ordersService
      * @param Logger $logger
-     * @internal param string $weekStr
      */
-    public function __construct(Google_Service_Sheets $sheetsService, MenusService $menusService, Logger $logger)
+    public function __construct(
+        Google_Service_Sheets $sheetsService,
+        MenusService $menusService,
+        UsersService $usersService,
+        OrdersService $ordersService,
+        Logger $logger)
     {
         $this->logger = $logger;
         $this->sheetsService = $sheetsService;
         $this->menusService = $menusService;
+        $this->usersService = $usersService;
+        $this->ordersService = $ordersService;
     }
 
     public function sync($spreadsheetId, $sheetRange)
@@ -182,9 +201,9 @@ class OrdersSynchronizer
         foreach ($sourceOrders as $sourceOrder) {
             // TODO idempotent PUT, but what about order creation?
             try {
-                $destOrder = $this->findOrder($sourceOrder);
+                $destOrder = $this->ordersService->findOne($sourceOrder);
                 if (!$destOrder) {
-                    $destOrder = $this->createOrder($sourceOrder);
+                    $destOrder = $this->ordersService->create($sourceOrder);
                 }
             } catch (ClientException $e) {
                 $this->logger->addWarning("Can't sync order due to: ".$e->getMessage());
@@ -197,24 +216,29 @@ class OrdersSynchronizer
         $variants = [];
         foreach ($menus as $weekDayMenu) {
 
-            $withoutMeat = $this->removeMenuDishes($weekDayMenu, ['meat']);
-            $withoutSalad = $this->removeMenuDishes($weekDayMenu, ['salad']);
-            $withoutGarnish = $this->removeMenuDishes($weekDayMenu, ['garnish']);
+            $withoutMeat = $weekDayMenu->withoutMeat();
+            $withoutSalad = $weekDayMenu->withoutSalad();
+            $withoutGarnish = $weekDayMenu->withoutGarnish();
 
-            Assert::keyExists($weekDayMenu, 'date');
+            /** @var string $date */
+            $date = $weekDayMenu->date($toString = true);
 
-            $variants[$weekDayMenu['date']] = [
+            $variants[$date] = [
                 self::BIG => $weekDayMenu,
                 self::MEDIUM => $weekDayMenu,
+
                 self::BIG_NO_MEAT => $withoutMeat,
                 self::MEDIUM_NO_MEAT => $withoutMeat,
+
                 self::BIG_NO_SALAD => $withoutSalad,
                 self::MEDIUM_NO_SALAD => $withoutSalad,
+
                 self::BIG_NO_GARNISH => $withoutGarnish,
                 self::MEDIUM_NO_GARNISH => $withoutGarnish,
-                self::ONLY_MEAT => $this->removeMenuDishes($weekDayMenu, ['garnish', 'salad']),
-                self::ONLY_SALAD => $this->removeMenuDishes($weekDayMenu, ['garnish', 'meat']),
-                self::ONLY_GARNISH => $this->removeMenuDishes($weekDayMenu, ['salad', 'meat']),
+
+                self::ONLY_MEAT => $weekDayMenu->onlyMeat(),
+                self::ONLY_SALAD => $weekDayMenu->onlySalad(),
+                self::ONLY_GARNISH => $weekDayMenu->onlyGarnish(),
             ];
         }
 
@@ -231,96 +255,31 @@ class OrdersSynchronizer
      */
     private function getUser($userName, $address)
     {
-        Assert::string($userName);
-        Assert::string($address);
+        $user = $this->usersService->findOne($userName);
 
-        // TODO hardcoded URI
-        $client = new Client(['base_uri' => 'http://lunches-api.local/']);
-        $response = $client->request('GET', '/users', [
-            'query' => ['like' => $userName]
-        ]);
-        $body = (string) $response->getBody();
-        $users = (array) json_decode($body, true);
-
-        $cnt = count($users);
-        if ($cnt === 0) {
-            $user = $this->registerUser($userName, $address);
-        } elseif ($cnt === 1) {
-            $user = array_shift($users);
-        } else {
-            // TODO more robust error handling
-            throw new \RuntimeException('Several users found');
+        if (!$user) {
+            $user = $this->usersService->create($userName, $address);
         }
-
-        $user['address'] = $address;
+        if (!$user['address']) {
+            $user['address'] = $address;
+        }
 
         return $user;
     }
 
-    private function registerUser($userName, $address)
-    {
-        // TODO refactor to use one client per class
-        $client = new Client(['base_uri' => 'http://lunches-api.local/']);
-        $response = $client->request('POST', '/users', [
-            'json' => [
-                'username' => $userName,
-                'address' => $address,
-            ]
-        ]);
-        $body = (string) $response->getBody();
-
-        return (array) json_decode($body, true);
-    }
-
     /**
-     * @return array
+     * @return Menu[]
      */
     private function fetchWeekMenus()
     {
-        return $this->menusService->findBetween(
+        $menus = $this->menusService->findBetween(
             $this->lastWeekDays->first(),
             $this->lastWeekDays->last()
         );
+        return array_map(function($menu) {
+            return Menu::fromArray($menu);
+        }, $menus);
     }
-
-    private function removeMenuDishes($menu, array $dishTypes)
-    {
-        Assert::keyExists($menu, 'dishes');
-
-        /** @var array $dishes */
-        $dishes = $menu['dishes'];
-        foreach ($dishes as $key => $dish) {
-
-            Assert::keyExists($dish, 'type');
-
-            if (in_array($dish['type'], $dishTypes, false)) {
-                unset($menu['dishes'][$key]);
-            }
-        }
-        return $menu;
-    }
-
-
-
-
-    private function createOrder(array $sourceOrder)
-    {
-        // TODO refactor to use one client per class
-        $client = new Client(['base_uri' => 'http://lunches-api.local/']);
-        $response = $client->request('POST', '/orders', [
-            'json' => $sourceOrder,
-        ]);
-        $body = (string) $response->getBody();
-
-        return (array) json_decode($body, true);
-    }
-
-    private function findOrder($sourceOrder)
-    {
-        // TODO https://github.com/lunches-platform/api/issues/145
-        return null;
-    }
-
 
     private function getOrderedDishes($orderDate, $userOrder)
     {
@@ -330,14 +289,10 @@ class OrdersSynchronizer
         $allMenus = $this->lastWeekMenuVariants[$orderDate];
         Assert::keyExists($allMenus, $userOrder, "Menu is not available for '{$userOrder}'");
 
+        /** @var Menu $orderedMenu */
         $orderedMenu = $allMenus[$userOrder];
-        Assert::keyExists($orderedMenu, 'dishes');
 
-        $dishes = $orderedMenu['dishes'];
-        Assert::isArray($dishes);
-        Assert::notEmpty($dishes);
-
-        return $dishes;
+        return $orderedMenu->dishes();
     }
 
     /**
