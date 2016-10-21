@@ -5,6 +5,7 @@ namespace Lunches\Actualizer\Synchronizer;
 use Google_Service_Sheets;
 use GuzzleHttp\Exception\ClientException;
 use Lunches\Actualizer\Service\MenusService;
+use Lunches\Actualizer\Service\UsersService;
 use Lunches\Actualizer\ValueObject\WeekDays;
 use Monolog\Logger;
 use GuzzleHttp\Client;
@@ -74,20 +75,30 @@ class OrdersSynchronizer
      * @var MenusService
      */
     private $menusService;
+    /**
+     * @var UsersService
+     */
+    private $usersService;
 
     /**
      * OrdersSynchronizer constructor.
      *
      * @param Google_Service_Sheets $sheetsService
      * @param MenusService $menusService
+     * @param UsersService $usersService
      * @param Logger $logger
      * @internal param string $weekStr
      */
-    public function __construct(Google_Service_Sheets $sheetsService, MenusService $menusService, Logger $logger)
+    public function __construct(
+        Google_Service_Sheets $sheetsService,
+        MenusService $menusService,
+        UsersService $usersService,
+        Logger $logger)
     {
         $this->logger = $logger;
         $this->sheetsService = $sheetsService;
         $this->menusService = $menusService;
+        $this->usersService = $usersService;
     }
 
     public function sync($spreadsheetId, $sheetRange)
@@ -231,45 +242,16 @@ class OrdersSynchronizer
      */
     private function getUser($userName, $address)
     {
-        Assert::string($userName);
-        Assert::string($address);
+        $user = $this->usersService->findOne($userName);
 
-        // TODO hardcoded URI
-        $client = new Client(['base_uri' => 'http://lunches-api.local/']);
-        $response = $client->request('GET', '/users', [
-            'query' => ['like' => $userName]
-        ]);
-        $body = (string) $response->getBody();
-        $users = (array) json_decode($body, true);
-
-        $cnt = count($users);
-        if ($cnt === 0) {
-            $user = $this->registerUser($userName, $address);
-        } elseif ($cnt === 1) {
-            $user = array_shift($users);
-        } else {
-            // TODO more robust error handling
-            throw new \RuntimeException('Several users found');
+        if (!$user) {
+            $user = $this->usersService->create($userName, $address);
+        }
+        if (!$user['address']) {
+            $user['address'] = $address;
         }
 
-        $user['address'] = $address;
-
         return $user;
-    }
-
-    private function registerUser($userName, $address)
-    {
-        // TODO refactor to use one client per class
-        $client = new Client(['base_uri' => 'http://lunches-api.local/']);
-        $response = $client->request('POST', '/users', [
-            'json' => [
-                'username' => $userName,
-                'address' => $address,
-            ]
-        ]);
-        $body = (string) $response->getBody();
-
-        return (array) json_decode($body, true);
     }
 
     /**
