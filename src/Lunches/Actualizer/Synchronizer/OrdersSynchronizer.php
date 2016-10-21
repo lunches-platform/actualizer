@@ -6,6 +6,7 @@ use Google_Service_Sheets;
 use GuzzleHttp\Exception\ClientException;
 use Lunches\Actualizer\Entity\Menu;
 use Lunches\Actualizer\Service\MenusService;
+use Lunches\Actualizer\Service\OrdersService;
 use Lunches\Actualizer\Service\UsersService;
 use Lunches\Actualizer\ValueObject\WeekDays;
 use Monolog\Logger;
@@ -80,6 +81,10 @@ class OrdersSynchronizer
      * @var UsersService
      */
     private $usersService;
+    /**
+     * @var OrdersService
+     */
+    private $ordersService;
 
     /**
      * OrdersSynchronizer constructor.
@@ -87,19 +92,21 @@ class OrdersSynchronizer
      * @param Google_Service_Sheets $sheetsService
      * @param MenusService $menusService
      * @param UsersService $usersService
+     * @param OrdersService $ordersService
      * @param Logger $logger
-     * @internal param string $weekStr
      */
     public function __construct(
         Google_Service_Sheets $sheetsService,
         MenusService $menusService,
         UsersService $usersService,
+        OrdersService $ordersService,
         Logger $logger)
     {
         $this->logger = $logger;
         $this->sheetsService = $sheetsService;
         $this->menusService = $menusService;
         $this->usersService = $usersService;
+        $this->ordersService = $ordersService;
     }
 
     public function sync($spreadsheetId, $sheetRange)
@@ -194,9 +201,9 @@ class OrdersSynchronizer
         foreach ($sourceOrders as $sourceOrder) {
             // TODO idempotent PUT, but what about order creation?
             try {
-                $destOrder = $this->findOrder($sourceOrder);
+                $destOrder = $this->ordersService->findOne($sourceOrder);
                 if (!$destOrder) {
-                    $destOrder = $this->createOrder($sourceOrder);
+                    $destOrder = $this->ordersService->create($sourceOrder);
                 }
             } catch (ClientException $e) {
                 $this->logger->addWarning("Can't sync order due to: ".$e->getMessage());
@@ -273,26 +280,6 @@ class OrdersSynchronizer
             return Menu::fromArray($menu);
         }, $menus);
     }
-
-
-    private function createOrder(array $sourceOrder)
-    {
-        // TODO refactor to use one client per class
-        $client = new Client(['base_uri' => 'http://lunches-api.local/']);
-        $response = $client->request('POST', '/orders', [
-            'json' => $sourceOrder,
-        ]);
-        $body = (string) $response->getBody();
-
-        return (array) json_decode($body, true);
-    }
-
-    private function findOrder($sourceOrder)
-    {
-        // TODO https://github.com/lunches-platform/api/issues/145
-        return null;
-    }
-
 
     private function getOrderedDishes($orderDate, $userOrder)
     {

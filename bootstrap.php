@@ -48,6 +48,9 @@ $app['service:dishes'] = function (Application $app) {
 $app['service:users'] = function (Application $app) {
     return new \Lunches\Actualizer\Service\UsersService($app['guzzle:lunches-api'], $app['lunches-api:access-token']);
 };
+$app['service:orders'] = function (Application $app) {
+    return new \Lunches\Actualizer\Service\OrdersService($app['guzzle:lunches-api'], $app['lunches-api:access-token']);
+};
 $app['synchronizer:menus'] = function(Application $app) {
     return new \Lunches\Actualizer\Synchronizer\MenusSynchronizer(
         $app['google:sheets-service'],
@@ -68,6 +71,7 @@ $app['synchronizer:orders'] = function (Application $app) {
         $app['google:sheets-service'],
         $app['service:menus'],
         $app['service:users'],
+        $app['service:orders'],
         $app['logger']
     );
 };
