@@ -4,12 +4,14 @@
 namespace Lunches\Actualizer\Service;
 
 use GuzzleHttp\Exception\ClientException;
+use Lunches\Actualizer\Entity\Menu;
 
 class MenusService extends AbstractService
 {
     /**
      * @param \DateTimeImmutable $date
      * @return array
+     * @throws \GuzzleHttp\Exception\ClientException
      */
     public function find(\DateTimeImmutable $date)
     {
@@ -38,21 +40,21 @@ class MenusService extends AbstractService
         ]));
     }
 
-    public function create(\DateTimeImmutable $date, $type, $menuDishes)
+    public function create(Menu $menu)
     {
-        return $this->makeRequest('PUT', '/menus/'.$date->format($this->apiDateFormat), [
+        return $this->makeRequest('PUT', '/menus/'.$menu->date()->format($this->apiDateFormat), [
             'json' => [
-                'type' => $type,
-                'products' => $menuDishes,
+                'type' => $menu->type(),
+                'products' => $menu->dishes(),
             ]
         ]);
     }
 
-    public function exists(\DateTimeImmutable $date, $type)
+    public function exists(Menu $menu)
     {
-        $existentMenus = $this->find($date);
-        foreach ($existentMenus as $menu) {
-            if ($type === $menu['type']) {
+        $existentMenus = $this->find($menu->date());
+        foreach ($existentMenus as $m) {
+            if ($menu->type() === $m['type']) {
                 return true;
             }
         }
