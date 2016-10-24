@@ -170,8 +170,7 @@ class Order implements \JsonSerializable
 
     private function setUserId($userId)
     {
-        // TODO
-//        Assert::uuid($userId);
+        Assert::uuid($userId);
 
         $this->userId = $userId;
     }
@@ -188,7 +187,7 @@ class Order implements \JsonSerializable
     {
         return [
             'userId' => $this->userId,
-            'shipmentDate' => $this->shipmentDate,
+            'shipmentDate' => $this->date(true),
             'address' => $this->address,
             'items' => $this->lineItems,
         ];

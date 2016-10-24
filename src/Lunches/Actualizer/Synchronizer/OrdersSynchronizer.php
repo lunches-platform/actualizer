@@ -135,14 +135,15 @@ class OrdersSynchronizer
             }
             try {
                 $menu = $this->getWeekDayMenu($menus, $i);
-                $order = new Order($shipmentDate = $menu->date(true), $user['id'], $user['address']);
+                $order = new Order($menu->date(true), $user['id'], $user['address']);
                 $order->setItemsFromOrderString($menu, $weekDayOrder);
+                unset($menu);
 
                 yield $order;
 
             } catch (\Exception $e) {
                 if ($e instanceof \InvalidArgumentException) {
-                    $date = isset($shipmentDate) ? $shipmentDate : '';
+                    $date = isset($menu) ? $menu->date(true) : '';
                     $msg = sprintf("%s's Order on %s has not been created due to: %s", $user['fullname'], $date, $e->getMessage());
                     $this->logger->addWarning($msg);
                     continue;
@@ -195,13 +196,15 @@ class OrdersSynchronizer
     {
         foreach ($orders as $order) {
             // TODO idempotent PUT, but what about order creation?
+            /** @var $order Order */
             try {
                 $existentOrder = $this->ordersService->findOne($order);
                 if (!$existentOrder) {
                     $this->ordersService->create($order);
+                    $this->logger->addInfo("Order on {$order->date(true)} of user #{$order->userId()} is created");
                 }
             } catch (ClientException $e) {
-                $this->logger->addWarning("Can't sync user #{$order->userId()} order due to: ".$e->getMessage());
+                $this->logger->addWarning("Can't sync user #{$order->userId()} order on {$order->date(true)} due to: ".$e->getMessage());
                 continue;
             }
         }
@@ -243,16 +246,18 @@ class OrdersSynchronizer
             yield;
         }
 
-        // just read the first currently
-        $sheet = array_shift($sheets);
-        $weekDateRange = $sheet->getProperties()->getTitle();
-        $range = $weekDateRange.'!'.$sheetRange;
-        $response = $this->sheetsService->spreadsheets_values->get($spreadsheetId, $range);
+        /** @var \Google_Service_Sheets_Sheet[] $sheets */
+        foreach ($sheets as $sheet) {
 
-        /** @var array $weekOrders */
-        $weekOrders = $response->getValues();
+            $weekDateRange = $sheet->getProperties()->getTitle();
+            $range = $weekDateRange.'!'.$sheetRange;
+            $response = $this->sheetsService->spreadsheets_values->get($spreadsheetId, $range);
 
-        yield [ $weekDateRange, $weekOrders ];
+            /** @var array $weekOrders */
+            $weekOrders = $response->getValues();
+
+            yield [ $weekDateRange, $weekOrders ];
+        }
     }
 
     /**
