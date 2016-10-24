@@ -9,8 +9,16 @@ return [
     ],
     'google-sheets:orders:spreadsheet-id' => '', // google sheet ID where orders are located
     'google-sheets:orders:spreadsheet-range' => '', // spreadsheet range where orders are located on a sheet
-    'lunches-api' => '', // lunches URI
-    'lunches-api:access-token' => '', // token to access secured parts of the Lunches API
+    'api:access-token' => '', // token to access secured parts of the Lunches API
     'google:auth:service-account-json' => '', // file name of the google service account json file
+    // deployed api instances
+    'instances' => [
+        [
+            'key' => 'company name',
+            'api-base-uri' => ''
+        ],
+        /// ...
+    ]
 ];
+
 
