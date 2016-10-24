@@ -23,10 +23,6 @@ $app->register(new Knp\Provider\ConsoleServiceProvider(), [
     'console.version'           => '0.1.0',
     'console.project_directory' => __DIR__.'/..'
 ]);
-
-$app['guzzle:lunches-api'] = function(Application $app) {
-    return new Client([ 'base_uri' => $app['lunches-api'] ]);
-};
 $app['google:client'] = function (Application $app) {
     $client = new Google_Client();
     $client->setAuthConfig($app['root_dir'].$app['google:auth:service-account-json']);
@@ -36,41 +32,61 @@ $app['google:client'] = function (Application $app) {
 $app['google:sheets-service'] = function (Application $app) {
     return new Google_Service_Sheets($app['google:client']);
 };
-$app['service:menus'] = function (Application $app) {
-    return new \Lunches\Actualizer\Service\MenusService($app['guzzle:lunches-api'], $app['lunches-api:access-token']);
-};
-$app['service:prices'] = function (Application $app) {
-    return new \Lunches\Actualizer\Service\PricesService($app['guzzle:lunches-api'], $app['lunches-api:access-token']);
-};
-$app['service:dishes'] = function (Application $app) {
-    return new \Lunches\Actualizer\Service\DishesService($app['guzzle:lunches-api'], $app['lunches-api:access-token']);
-};
-$app['service:users'] = function (Application $app) {
-    return new \Lunches\Actualizer\Service\UsersService($app['guzzle:lunches-api'], $app['lunches-api:access-token']);
-};
-$app['service:orders'] = function (Application $app) {
-    return new \Lunches\Actualizer\Service\OrdersService($app['guzzle:lunches-api'], $app['lunches-api:access-token']);
-};
-$app['synchronizer:menus'] = function(Application $app) {
-    return new \Lunches\Actualizer\Synchronizer\MenusSynchronizer(
-        $app['google:sheets-service'],
-        $app['service:menus'],
-        $app['synchronizer:dishes'],
-        $app['prices-generator'],
-        $app['logger']
-    );
-};
-$app['synchronizer:dishes'] = function(Application $app) {
-    return new \Lunches\Actualizer\Synchronizer\DishesSynchronizer(
-        $app['service:dishes'],
-        $app['logger']
-    );
-};
-$app['synchronizer:orders'] = function (Application $app) {
-    return new \Lunches\Actualizer\Synchronizer\OrdersSynchronizer(
-        $app['google:sheets-service'],
-        $app['service:menus'],
-        $app['service:users'],
+// register services for each instance
+/** @var array $instances */
+$instances = $app['instances'];
+foreach ($instances as $instance) {
+    $key = $instance['key'];
+
+    $app["guzzle:{$key}-api"] = function() use ($instance) {
+        return new Client([
+            'base_uri' => $instance['api-base-uri'],
+        ]);
+    };
+    $apiClient = $app["guzzle:{$key}-api"];
+
+    $app["service:orders:{$key}"] = function (Application $app) use ($apiClient) {
+        return new \Lunches\Actualizer\Service\OrdersService($apiClient, $app['api:access-token']);
+    };
+    $app["service:menus:{$key}"] = function (Application $app) use ($apiClient) {
+        return new \Lunches\Actualizer\Service\MenusService($apiClient, $app['api:access-token']);
+    };
+    $app["service:prices:{$key}"] = function (Application $app) use ($apiClient) {
+        return new \Lunches\Actualizer\Service\PricesService($apiClient, $app['api:access-token']);
+    };
+    $app["service:dishes:{$key}"] = function (Application $app) use ($apiClient) {
+        return new \Lunches\Actualizer\Service\DishesService($apiClient, $app['api:access-token']);
+    };
+    $app["service:users:{$key}"] = function (Application $app) use ($apiClient) {
+        return new \Lunches\Actualizer\Service\UsersService($apiClient, $app['api:access-token']);
+    };
+
+    $app["synchronizer:menus:{$key}"] = function(Application $app) use ($key) {
+        return new \Lunches\Actualizer\Synchronizer\MenusSynchronizer(
+            $app['google:sheets-service'],
+            $app["service:menus:{$key}"],
+            $app["synchronizer:dishes:{$key}"],
+            $app["prices-generator:{$key}"],
+            $app['logger']
+        );
+    };
+    $app["synchronizer:dishes:{$key}"] = function(Application $app) use ($key) {
+        return new \Lunches\Actualizer\Synchronizer\DishesSynchronizer(
+            $app["service:dishes:{$key}"],
+            $app['logger']
+        );
+    };
+    $app["synchronizer:orders:{$key}"] = function (Application $app) use ($key) {
+        return new \Lunches\Actualizer\Synchronizer\OrdersSynchronizer(
+            $app['google:sheets-service'],
+            $app["service:menus:{$key}"],
+            $app["service:users:{$key}"],
+            $app["service:orders:{$key}"],
+            $app['logger']
+        );
+    };
+}
+
         $app['service:orders'],
         $app['logger']
     );

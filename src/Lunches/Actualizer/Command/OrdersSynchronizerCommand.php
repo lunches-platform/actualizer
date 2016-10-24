@@ -6,6 +6,7 @@ use Knp\Command\Command;
 use Lunches\Actualizer\Synchronizer\OrdersSynchronizer;
 use Monolog\Logger;
 use Symfony\Bridge\Monolog\Handler\ConsoleHandler;
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -19,7 +20,7 @@ class OrdersSynchronizerCommand extends Command
      */
     protected function configure()
     {
-        $this->setName('synchronizer:orders');
+        $this->setName('synchronizer:orders')->addArgument('instance', InputArgument::REQUIRED, 'API instance (company) to synchronize orders');
     }
 
     /**
@@ -33,8 +34,7 @@ class OrdersSynchronizerCommand extends Command
         $spreadsheetId = $this->getSilexApplication()['google-sheets:orders:spreadsheet-id'];
         $sheetRange = $this->getSilexApplication()['google-sheets:orders:spreadsheet-range'];
         try {
-            $stat = $this->getOrdersSynchronizer($output)->sync($spreadsheetId, $sheetRange);
-            $output->writeln($stat);
+            $this->getOrdersSynchronizer($input, $output)->sync($spreadsheetId, $sheetRange);
         } catch (\Exception $e) {
             $this->getConsoleLogger($output)->addError($e->getMessage());
         }
@@ -44,12 +44,23 @@ class OrdersSynchronizerCommand extends Command
 
     /**
      * @param OutputInterface $output
+     * @param InputInterface $input
      * @return OrdersSynchronizer
+     * @throws \Symfony\Component\Console\Exception\InvalidArgumentException
+     * @throws \InvalidArgumentException
      */
-    private function getOrdersSynchronizer(OutputInterface $output)
+    private function getOrdersSynchronizer(InputInterface $input, OutputInterface $output)
     {
+        $instance = $input->getArgument('instance');
+        $instances = array_map(function ($instance) {
+            return $instance['key'];
+        }, $this->getSilexApplication()['instances']);
+
+        if (!in_array($instance, $instances, true)) {
+            throw new \InvalidArgumentException('Provided instance not found. Please try again');
+        }
         /** @var OrdersSynchronizer $synchronizer */
-        $synchronizer = $this->getSilexApplication()['synchronizer:orders'];
+        $synchronizer = $this->getSilexApplication()["synchronizer:orders:{$instance}"];
         $synchronizer->setLogger($this->getConsoleLogger($output));
         
         return $synchronizer;

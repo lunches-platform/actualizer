@@ -6,6 +6,7 @@ use Knp\Command\Command;
 use Lunches\Actualizer\Synchronizer\MenusSynchronizer;
 use Monolog\Logger;
 use Symfony\Bridge\Monolog\Handler\ConsoleHandler;
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -19,7 +20,7 @@ class MenusSynchronizerCommand extends Command
      */
     protected function configure()
     {
-        $this->setName('synchronizer:menus');
+        $this->setName('synchronizer:menus')->addArgument('instance', InputArgument::REQUIRED, 'API instance (company) to synchronize menus');
     }
 
     /**
@@ -34,7 +35,7 @@ class MenusSynchronizerCommand extends Command
         $menusSheets = $this->getSilexApplication()['google-sheets:menus'];
         try {
             foreach ($menusSheets as $sheet) {
-                $stat = $this->getMenusSynchronizer($output)->sync($sheet['id'], $sheet['range']);
+                $stat = $this->getMenusSynchronizer($input, $output)->sync($sheet['id'], $sheet['range']);
                 $output->writeln($stat);
             }
         } catch (\Exception $e) {
@@ -45,13 +46,25 @@ class MenusSynchronizerCommand extends Command
     }
 
     /**
+     * @param InputInterface $input
      * @param OutputInterface $output
      * @return MenusSynchronizer
+     * @throws \Symfony\Component\Console\Exception\InvalidArgumentException
+     * @throws \InvalidArgumentException
      */
-    private function getMenusSynchronizer(OutputInterface $output)
+    private function getMenusSynchronizer(InputInterface $input, OutputInterface $output)
     {
+        $instance = $input->getArgument('instance');
+        $instances = array_map(function ($instance) {
+            return $instance['key'];
+        }, $this->getSilexApplication()['instances']);
+
+        if (!in_array($instance, $instances, true)) {
+            throw new \InvalidArgumentException('Provided instance not found. Please try again');
+        }
+
         /** @var MenusSynchronizer $synchronizer */
-        $synchronizer = $this->getSilexApplication()['synchronizer:menus'];
+        $synchronizer = $this->getSilexApplication()["synchronizer:menus:{$instance}"];
         $synchronizer->setLogger($this->getConsoleLogger($output));
         
         return $synchronizer;
