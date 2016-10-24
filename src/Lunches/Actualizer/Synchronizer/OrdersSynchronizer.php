@@ -202,10 +202,10 @@ class OrdersSynchronizer
                 $existentOrder = $this->ordersService->findOne($order);
                 if (!$existentOrder) {
                     $this->ordersService->create($order);
-                    $this->logger->addInfo("Order on {$order->date(true)} of user #{$order->userId()} is created");
+                    $this->logger->addInfo("Order on {$order->date(true)} of user {$order->user()['fullname']} is created");
                 }
             } catch (ClientException $e) {
-                $this->logger->addWarning("Can't sync user #{$order->userId()} order on {$order->date(true)} due to: ".$e->getMessage());
+                $this->logger->addWarning("Can't sync user {$order->user()['fullname']} order on {$order->date(true)} due to: ".$e->getMessage());
                 continue;
             }
         }

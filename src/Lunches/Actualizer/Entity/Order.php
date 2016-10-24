@@ -4,6 +4,7 @@
 namespace Lunches\Actualizer\Entity;
 
 
+use Lunches\Actualizer\ValueObject\Address;
 use Webmozart\Assert\Assert;
 
 class Order implements \JsonSerializable
@@ -15,9 +16,9 @@ class Order implements \JsonSerializable
     /**
      * @var string
      */
-    private $userId;
+    private $user;
     /**
-     * @var string
+     * @var Address
      */
     private $address;
     /**
@@ -56,11 +57,11 @@ class Order implements \JsonSerializable
         self::ONLY_GARNISH,
     ];
 
-    public function __construct($date, $userId, $address)
+    public function __construct($date, $user, Address $address)
     {
         $this->setShipmentDate($date);
-        $this->setUserId($userId);
-        $this->setAddress($address);
+        $this->setUser($user);
+        $this->address = $address;
         $this->lineItems = [];
     }
 
@@ -108,11 +109,44 @@ class Order implements \JsonSerializable
         }
         return $this->shipmentDate;
     }
-
-    public function userId()
+    public static function fromArray(array $data)
     {
-        return $this->userId;
+        Assert::keyExists($data, 'shipmentDate');
+        Assert::keyExists($data, 'user');
+        Assert::keyExists($data, 'company');
+        Assert::keyExists($data, 'address');
+        Assert::keyExists($data, 'items');
+
+        Assert::isArray($data['items']);
+
+        $order = new Order(
+            $data['shipmentDate'],
+            $data['user'],
+            new Address($data['user'], 'Kiev', $data['address'], $data['company'])
+        );
+        /** @var array $items */
+        $items = $data['items'];
+        foreach ($items as $item) {
+            Assert::keyExists($item, 'size');
+            $order->addLineItem($item['product']['id'], $item['size']);
+        }
+
+        return $order;
     }
+
+    /**
+     * @return Address
+     */
+    public function address()
+    {
+        return $this->address;
+    }
+
+    public function user()
+    {
+        return $this->user;
+    }
+
     private function dishesFromOrderString($orderStr, Menu $menu)
     {
         switch ($orderStr) {
@@ -168,28 +202,29 @@ class Order implements \JsonSerializable
         }
     }
 
-    private function setUserId($userId)
+    private function setUser($user)
     {
-        Assert::uuid($userId);
+        Assert::isArray($user);
+        Assert::keyExists($user, 'id');
+        Assert::keyExists($user, 'fullname');
+        Assert::keyExists($user, 'address');
+        Assert::uuid($user['id']);
 
-        $this->userId = $userId;
+        $this->user = $user;
     }
 
-    private function setAddress($address)
-    {
-        Assert::string($address);
-        Assert::range(mb_strlen($address), 1, 150, 'address must be greater than zero and less than 150 characters');
-
-        $this->address = $address;
-    }
-
-    public function jsonSerialize()
+    public function toArray()
     {
         return [
-            'userId' => $this->userId,
+            'user' => $this->user,
             'shipmentDate' => $this->date(true),
             'address' => $this->address,
             'items' => $this->lineItems,
         ];
+    }
+
+    public function jsonSerialize()
+    {
+        return $this->toArray();
     }
 }
