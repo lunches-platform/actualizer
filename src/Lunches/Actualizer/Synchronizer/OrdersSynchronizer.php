@@ -9,6 +9,7 @@ use Lunches\Actualizer\Entity\Order;
 use Lunches\Actualizer\Service\MenusService;
 use Lunches\Actualizer\Service\OrdersService;
 use Lunches\Actualizer\Service\UsersService;
+use Lunches\Actualizer\ValueObject\Address;
 use Lunches\Actualizer\ValueObject\WeekDays;
 use Monolog\Logger;
 use Webmozart\Assert\Assert;
@@ -135,7 +136,7 @@ class OrdersSynchronizer
             }
             try {
                 $menu = $this->getWeekDayMenu($menus, $i);
-                $order = new Order($menu->date(true), $user['id'], $user['address']);
+                $order = new Order($menu->date(true), $user, new Address($user, 'Kiev', $user['address'], $user['company']));
                 $order->setItemsFromOrderString($menu, $weekDayOrder);
                 unset($menu);
 
