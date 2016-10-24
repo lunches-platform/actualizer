@@ -246,16 +246,18 @@ class OrdersSynchronizer
             yield;
         }
 
-        // just read the first currently
-        $sheet = array_shift($sheets);
-        $weekDateRange = $sheet->getProperties()->getTitle();
-        $range = $weekDateRange.'!'.$sheetRange;
-        $response = $this->sheetsService->spreadsheets_values->get($spreadsheetId, $range);
+        /** @var \Google_Service_Sheets_Sheet[] $sheets */
+        foreach ($sheets as $sheet) {
 
-        /** @var array $weekOrders */
-        $weekOrders = $response->getValues();
+            $weekDateRange = $sheet->getProperties()->getTitle();
+            $range = $weekDateRange.'!'.$sheetRange;
+            $response = $this->sheetsService->spreadsheets_values->get($spreadsheetId, $range);
 
-        yield [ $weekDateRange, $weekOrders ];
+            /** @var array $weekOrders */
+            $weekOrders = $response->getValues();
+
+            yield [ $weekDateRange, $weekOrders ];
+        }
     }
 
     /**
