@@ -22,7 +22,7 @@ class Order implements \JsonSerializable
      */
     private $address;
     /**
-     * @var array
+     * @var LineItem[]
      */
     private $lineItems;
 
@@ -81,16 +81,13 @@ class Order implements \JsonSerializable
         $dishes = $this->dishesFromOrderString($orderStr, $menu);
 
         array_walk($dishes, function ($dish) use ($size) {
-            $this->addLineItem($dish['id'], $size);
+            $this->addLineItem($dish, $size);
         });
     }
 
-    public function addLineItem($dishId, $size)
+    public function addLineItem($dish, $size)
     {
-        $this->lineItems[] = [
-            'dishId' => $dishId,
-            'size' => $size,
-        ];
+        $this->lineItems[] = new LineItem($this, $dish, $size);
     }
 
     public function toDisplayString()
@@ -140,7 +137,8 @@ class Order implements \JsonSerializable
         $items = $data['items'];
         foreach ($items as $item) {
             Assert::keyExists($item, 'size');
-            $order->addLineItem($item['product']['id'], $item['size']);
+            Assert::keyExists($item, 'product');
+            $order->addLineItem($item['product'], $item['size']);
         }
 
         return $order;
