@@ -92,14 +92,11 @@ class Order implements \JsonSerializable
 
     public function toDisplayString()
     {
-        $dishes = array_map(function($lineItem) {
-            return $lineItem['dishId'];
-        }, $this->lineItems);
-        $dishes = implode(', ', $dishes);
+        $dishTypes = $this->orderedDishTypes();
+        $dishTypes = $this->translate($dishTypes);
+        $dishTypes = implode(', ', $dishTypes);
 
-        $size = count($this->lineItems) > 0 ? $this->lineItems[0]['size'] : '';
-
-        return $size.' - '.$dishes;
+        return $this->translate($this->getSize()).' - '.$dishTypes;
     }
 
     public function clear()
@@ -236,5 +233,47 @@ class Order implements \JsonSerializable
     public function jsonSerialize()
     {
         return $this->toArray();
+    }
+
+    private function orderedDishTypes()
+    {
+        return array_map(function(LineItem $lineItem) {
+            return $lineItem->dishType();
+        }, $this->lineItems);
+    }
+
+    private function getSize()
+    {
+        $sizes = [];
+        foreach ($this->lineItems as $lineItem) {
+            $sizes[] = $lineItem->size();
+        }
+        $sizes = array_unique($sizes);
+        if (count($sizes) > 1) {
+            throw new \RuntimeException('There are more than one Size found per order');
+        }
+        return array_shift($sizes);
+    }
+
+    private function translate($value)
+    {
+        if (is_array($value)) {
+            return array_map([$this, 'translateScalar'], $value);
+        }
+        return $this->translateScalar($value);
+    }
+
+    private function translateScalar($value)
+    {
+        $map = [
+            'medium' => 'Средняя',
+            'big' => 'Большая',
+            'meat' => 'Мясо',
+            'garnish' => 'Гарнир',
+            'salad' => 'Салат',
+            'fish' => 'Рыба',
+        ];
+
+        return array_key_exists($value, $map) ? $map[$value] : $value;
     }
 }
