@@ -12,4 +12,5 @@ require_once __DIR__ . '/../bootstrap.php';
 $console = $app['console'];
 $console->add(new \Lunches\Actualizer\Command\MenusSynchronizerCommand());
 $console->add(new \Lunches\Actualizer\Command\OrdersSynchronizerCommand());
+$console->add(new \Lunches\Actualizer\Command\ReportsCommand());
 $console->run();
