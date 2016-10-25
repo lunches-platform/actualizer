@@ -45,8 +45,8 @@ foreach ($instances as $instance) {
     };
     $apiClient = $app["guzzle:{$key}-api"];
 
-    $app["service:orders:{$key}"] = function (Application $app) use ($apiClient) {
-        return new \Lunches\Actualizer\Service\OrdersService($apiClient, $app['api:access-token']);
+    $app["service:orders:{$key}"] = function (Application $app) use ($apiClient, $instance) {
+        return new \Lunches\Actualizer\Service\OrdersService($apiClient, $app['api:access-token'], $instance['key']);
     };
     $app["service:menus:{$key}"] = function (Application $app) use ($apiClient) {
         return new \Lunches\Actualizer\Service\MenusService($apiClient, $app['api:access-token']);
@@ -57,8 +57,8 @@ foreach ($instances as $instance) {
     $app["service:dishes:{$key}"] = function (Application $app) use ($apiClient) {
         return new \Lunches\Actualizer\Service\DishesService($apiClient, $app['api:access-token']);
     };
-    $app["service:users:{$key}"] = function (Application $app) use ($apiClient) {
-        return new \Lunches\Actualizer\Service\UsersService($apiClient, $app['api:access-token']);
+    $app["service:users:{$key}"] = function (Application $app) use ($apiClient, $instance) {
+        return new \Lunches\Actualizer\Service\UsersService($apiClient, $app['api:access-token'], $instance['key']);
     };
 
     $app["synchronizer:menus:{$key}"] = function(Application $app) use ($key) {
@@ -85,16 +85,26 @@ foreach ($instances as $instance) {
             $app['logger']
         );
     };
+    $app["prices-generator:{$key}"] = function (Application $app) use ($key) {
+        return new \Lunches\Actualizer\PricesGenerator(
+            $app["service:prices:{$key}"]
+        );
+    };
 }
+$app['get-services'] = $app->protect(function ($name) use ($app, $instances) {
+    return array_map(function ($instance) use ($app, $name) {
+        return $app["service:{$name}:{$instance['key']}"];
+    }, $instances);
+});
 
-        $app['service:orders'],
-        $app['logger']
+$app['cook-report'] = function (Application $app) {
+    return new \Lunches\Actualizer\CookReport(
+        $app['get-services']('orders'),
+        $app['plates']
     );
 };
-$app['prices-generator'] = function (Application $app) {
-    return new \Lunches\Actualizer\PricesGenerator(
-        $app['service:prices']
-    );
+$app['plates'] = function () {
+    return new League\Plates\Engine(__DIR__.'/templates');
 };
 
 return $app;
