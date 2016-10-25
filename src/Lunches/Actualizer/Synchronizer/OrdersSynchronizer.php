@@ -9,6 +9,7 @@ use Lunches\Actualizer\Entity\Order;
 use Lunches\Actualizer\Service\MenusService;
 use Lunches\Actualizer\Service\OrdersService;
 use Lunches\Actualizer\Service\UsersService;
+use Lunches\Actualizer\ValueObject\Address;
 use Lunches\Actualizer\ValueObject\WeekDays;
 use Monolog\Logger;
 use Webmozart\Assert\Assert;
@@ -135,7 +136,7 @@ class OrdersSynchronizer
             }
             try {
                 $menu = $this->getWeekDayMenu($menus, $i);
-                $order = new Order($menu->date(true), $user['id'], $user['address']);
+                $order = new Order($menu->date(true), $user, new Address($user, 'Kiev', $user['address'], $user['company']));
                 $order->setItemsFromOrderString($menu, $weekDayOrder);
                 unset($menu);
 
@@ -201,10 +202,10 @@ class OrdersSynchronizer
                 $existentOrder = $this->ordersService->findOne($order);
                 if (!$existentOrder) {
                     $this->ordersService->create($order);
-                    $this->logger->addInfo("Order on {$order->date(true)} of user #{$order->userId()} is created");
+                    $this->logger->addInfo("Order on {$order->date(true)} of user {$order->user()['fullname']} is created");
                 }
             } catch (ClientException $e) {
-                $this->logger->addWarning("Can't sync user #{$order->userId()} order on {$order->date(true)} due to: ".$e->getMessage());
+                $this->logger->addWarning("Can't sync user {$order->user()['fullname']} order on {$order->date(true)} due to: ".$e->getMessage());
                 continue;
             }
         }

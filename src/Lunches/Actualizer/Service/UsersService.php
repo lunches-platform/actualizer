@@ -3,10 +3,19 @@
 
 namespace Lunches\Actualizer\Service;
 
+use GuzzleHttp\Client;
 use Webmozart\Assert\Assert;
 
 class UsersService extends AbstractService
 {
+    /** @var  string */
+    private $company;
+
+    public function __construct(Client $client, $accessToken, $company)
+    {
+        $this->company = $company;
+        parent::__construct($client, $accessToken);
+    }
     public function findOne($userName)
     {
         $users = $this->find($userName);
@@ -15,9 +24,11 @@ class UsersService extends AbstractService
 
     public function find($userName)
     {
-        return $this->makeRequest('GET', '/users', [
+        $users = $this->makeRequest('GET', '/users', [
             'query' => ['like' => $userName],
         ]);
+        $users = array_map([$this, 'prepareOne'], $users);
+        return $users;
     }
     public function create($userName, $address)
     {
@@ -30,5 +41,13 @@ class UsersService extends AbstractService
                 'address' => $address,
             ]
         ]);
+    }
+
+    private function prepareOne($item)
+    {
+        if (is_array($item)) {
+            $item['company'] = $this->company;
+        }
+        return $item;
     }
 }
