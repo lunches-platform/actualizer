@@ -25,6 +25,11 @@ class Menu
      * @var array of dishes
      */
     private $dishes;
+    /**
+     * Cache property
+     * @var array
+     */
+    private $dishIds = [];
 
     private static $types = ['diet', 'regular'];
     private static $dateFormat = 'Y-m-d';
@@ -52,6 +57,19 @@ class Menu
             (in_array(self::DISH_TYPE_MEAT, $dishTypes, true) || in_array(self::DISH_TYPE_FISH, $dishTypes, true)) &&
             in_array(self::DISH_TYPE_GARNISH, $dishTypes, true) &&
             in_array(self::DISH_TYPE_SALAD, $dishTypes, true);
+    }
+
+    public function resolveMenuType(Order $order)
+    {
+        if (!$this->isCookingAt($order->date())) {
+            throw new \InvalidArgumentException('Provided Menu is not cooking at needed day');
+        }
+
+        if ($this->canServeOrder($order)) {
+            return $this->type;
+        }
+
+        return null;
     }
 
     public function withoutMeat()
@@ -188,10 +206,25 @@ class Menu
     {
         foreach ($dishes as $dish) {
             Assert::keyExists($dish, 'type');
+            Assert::keyExists($dish, 'id');
         }
 
+        $this->dishIds = array_map(function ($dish) {
+            return $dish['id'];
+        }, $dishes);
         $this->dishes = $dishes;
     }
 
+    private function canServeOrder(Order $order)
+    {
+        return array_reduce($order->lineItems(), function ($isCooking, LineItem $lineItem) {
+            return $isCooking && $this->isDishCooking($lineItem->dish());
+        }, true);
+    }
+
+    private function isDishCooking($dish)
+    {
+        return in_array($dish['id'], $this->dishIds, true);
+    }
 
 }

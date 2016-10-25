@@ -115,6 +115,12 @@ class Order implements \JsonSerializable
         }
         return $this->shipmentDate;
     }
+
+    public function lineItems()
+    {
+        return $this->lineItems;
+    }
+
     public static function fromArray(array $data)
     {
         Assert::keyExists($data, 'shipmentDate');
