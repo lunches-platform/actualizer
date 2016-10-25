@@ -5,18 +5,24 @@ namespace Lunches\Actualizer;
 
 use League\Plates\Engine;
 use Lunches\Actualizer\Entity\Order;
+use Lunches\Actualizer\Service\MenusService;
 use Lunches\Actualizer\Service\OrdersService;
 
 class CookingPackingReport
 {
     /** @var OrdersService[] */
     private $ordersServices;
+    /** @var MenusService[] */
+    private $menusServices;
     /** @var  Engine */
     private $templates;
+    /** @var array */
+    private $menus = [];
 
-    public function __construct($ordersServices, Engine $engine)
+    public function __construct($ordersServices, $menusServices, Engine $engine)
     {
         $this->ordersServices = $ordersServices;
+        $this->menusServices = $menusServices;
         $this->templates = $engine;
         setlocale(LC_ALL, 'ru_RU.UTF-8');
     }
@@ -49,49 +55,76 @@ class CookingPackingReport
     public function forWeek()
     {
         $ordersTree = [];
-        foreach ($this->fetchOrders() as $order) {
-            /** @var Order $order */
-            /** @var string $date */
-            $date = $order->date(true);
 
-            $dateGroup = $this->getGroup($ordersTree, $date);
-            $dateGroup['count']++;
-            $dateSubGroups = &$dateGroup['subGroups'];
+        list ($startDate, $endDate) = $this->getWeekRange();
 
-            $company = $order->address()->company();
+        $this->initMenus($startDate, $endDate);
 
-            $companyGroup = $this->getGroup($dateSubGroups, $company);
-            $companyGroup['count']++;
-            $companySubGroups = &$companyGroup['subGroups'];
+        foreach ($this->fetchOrders($startDate, $endDate) as $order) {
 
-            $address = $order->address()->street();
-
-            $addressGroup = $this->getGroup($companySubGroups, $address);
-            $addressGroup['count']++;
-            $addressSubGroups = &$addressGroup['subGroups'];
-
-            // TODO set menu type
-//            $menuType = $order['menuType'];
-            $menuType = 'regular';
-
-            $menuTypeGroup = $this->getGroup($addressSubGroups, $menuType);
-            $menuTypeGroup['count']++;
-            $menuTypeSubGroups = &$menuTypeGroup['subGroups'];
-
-            $orderStr = $order->toDisplayString();
-            $orderStrGroup = $this->getGroup($menuTypeSubGroups, $orderStr);
-            $orderStrGroup['count']++;
-            $this->addOrder($orderStrGroup, $order);
-
-
-            $this->updateGroup($menuTypeSubGroups, $orderStr, $orderStrGroup);
-            $this->updateGroup($addressSubGroups, $menuType, $menuTypeGroup);
-            $this->updateGroup($companySubGroups, $address, $addressGroup);
-            $this->updateGroup($dateSubGroups, $company, $companyGroup);
-            $this->updateGroup($ordersTree, $date, $dateGroup);
+            try {
+                $this->addToTree($order, $ordersTree);
+            } catch (\RuntimeException $e) {
+                // TODO log
+                continue;
+            }
         }
 
         return $this->render($ordersTree);
+    }
+
+    private function getWeekRange()
+    {
+        if (new \DateTimeImmutable('now') > new \DateTimeImmutable('friday + 13 hours')) {
+            $startDate = new \DateTimeImmutable('monday next week');
+            $endDate = new \DateTimeImmutable('friday next week');
+        } else {
+            $startDate = new \DateTimeImmutable('monday this week');
+            $endDate = new \DateTimeImmutable('friday this week');
+        }
+
+        return [$startDate, $endDate];
+    }
+
+    private function addToTree(Order $order, &$ordersTree)
+    {
+        /** @var Order $order */
+        /** @var string $date */
+        $date = $order->date(true);
+
+        $dateGroup = $this->getGroup($ordersTree, $date);
+        $dateGroup['count']++;
+        $dateSubGroups = &$dateGroup['subGroups'];
+
+        $company = $order->address()->company();
+
+        $companyGroup = $this->getGroup($dateSubGroups, $company);
+        $companyGroup['count']++;
+        $companySubGroups = &$companyGroup['subGroups'];
+
+        $address = $order->address()->street();
+
+        $addressGroup = $this->getGroup($companySubGroups, $address);
+        $addressGroup['count']++;
+        $addressSubGroups = &$addressGroup['subGroups'];
+
+        $menuType = $order->resolveMenuType($this->menus);
+
+        $menuTypeGroup = $this->getGroup($addressSubGroups, $menuType);
+        $menuTypeGroup['count']++;
+        $menuTypeSubGroups = &$menuTypeGroup['subGroups'];
+
+        $orderStr = $order->toDisplayString();
+
+        $orderStrGroup = $this->getGroup($menuTypeSubGroups, $orderStr);
+        $orderStrGroup['count']++;
+        $this->addOrder($orderStrGroup, $order);
+
+        $this->updateGroup($menuTypeSubGroups, $orderStr, $orderStrGroup);
+        $this->updateGroup($addressSubGroups, $menuType, $menuTypeGroup);
+        $this->updateGroup($companySubGroups, $address, $addressGroup);
+        $this->updateGroup($dateSubGroups, $company, $companyGroup);
+        $this->updateGroup($ordersTree, $date, $dateGroup);
     }
 
     /**
@@ -142,23 +175,32 @@ class CookingPackingReport
     }
 
     /**
+     * @param \DateTimeImmutable $startDate
+     * @param \DateTimeImmutable $endDate
      * @return \Generator
      */
-    private function fetchOrders()
+    private function fetchOrders(\DateTimeImmutable $startDate, \DateTimeImmutable $endDate)
     {
-        if (new \DateTimeImmutable('now') > new \DateTimeImmutable('friday + 13 hours')) {
-            $startDate = new \DateTimeImmutable('monday next week');
-            $endDate = new \DateTimeImmutable('friday next week');
-        } else {
-            $startDate = new \DateTimeImmutable('monday this week');
-            $endDate = new \DateTimeImmutable('friday this week');
-        }
-
         foreach ($this->ordersServices as $ordersService) {
             try {
                 $orders = $ordersService->findBetween($startDate, $endDate);
                 foreach ($orders as $order) {
                     yield $order;
+                }
+            } catch (\Exception $e) {
+                // TODO log
+                continue;
+            }
+        }
+    }
+
+    private function initMenus(\DateTimeImmutable $startDate, \DateTimeImmutable $endDate)
+    {
+        foreach ($this->menusServices as $menusService) {
+            try {
+                $menus = $menusService->findBetween($startDate, $endDate);
+                foreach ($menus as $menu) {
+                    $this->menus[] = $menu;
                 }
             } catch (\Exception $e) {
                 // TODO log
