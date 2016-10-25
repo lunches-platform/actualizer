@@ -3,19 +3,10 @@
 
 namespace Lunches\Actualizer\Service;
 
-use GuzzleHttp\Client;
 use Webmozart\Assert\Assert;
 
 class UsersService extends AbstractService
 {
-    /** @var  string */
-    private $company;
-
-    public function __construct(Client $client, $accessToken, $company)
-    {
-        $this->company = $company;
-        parent::__construct($client, $accessToken);
-    }
     public function findOne($userName)
     {
         $users = $this->find($userName);

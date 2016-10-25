@@ -11,13 +11,24 @@ abstract class AbstractService
     protected $client;
     /** @var  string */
     protected $accessToken;
+    /** @var  string */
+    protected $company;
     /** @var string  */
     protected $apiDateFormat = 'Y-m-d';
 
-    public function __construct(Client $client, $accessToken)
+    public function __construct(Client $client, $accessToken, $company)
     {
         $this->client = $client;
         $this->accessToken = $accessToken;
+        $this->company = $company;
+    }
+
+    /**
+     * @return string
+     */
+    public function company()
+    {
+        return $this->company;
     }
 
     protected function makeRequest($method, $uri, array $params = [])

@@ -3,19 +3,10 @@
 
 namespace Lunches\Actualizer\Service;
 
-use GuzzleHttp\Client;
 use Lunches\Actualizer\Entity\Order;
 
 class OrdersService extends AbstractService
 {
-    /** @var  string */
-    private $company;
-
-    public function __construct(Client $client, $accessToken, $company)
-    {
-        $this->company = $company;
-        parent::__construct($client, $accessToken);
-    }
     public function findOne(Order $order)
     {
         // TODO https://github.com/lunches-platform/api/issues/145

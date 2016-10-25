@@ -14,7 +14,8 @@ return [
     // deployed api instances
     'instances' => [
         [
-            'key' => 'company name',
+            'key' => '',
+            'company' => 'company name',
             'api-base-uri' => ''
         ],
         /// ...

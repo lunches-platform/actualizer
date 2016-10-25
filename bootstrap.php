@@ -46,19 +46,19 @@ foreach ($instances as $instance) {
     $apiClient = $app["guzzle:{$key}-api"];
 
     $app["service:orders:{$key}"] = function (Application $app) use ($apiClient, $instance) {
-        return new \Lunches\Actualizer\Service\OrdersService($apiClient, $app['api:access-token'], $instance['key']);
+        return new \Lunches\Actualizer\Service\OrdersService($apiClient, $app['api:access-token'], $instance['company']);
     };
-    $app["service:menus:{$key}"] = function (Application $app) use ($apiClient) {
-        return new \Lunches\Actualizer\Service\MenusService($apiClient, $app['api:access-token']);
+    $app["service:menus:{$key}"] = function (Application $app) use ($apiClient, $instance) {
+        return new \Lunches\Actualizer\Service\MenusService($apiClient, $app['api:access-token'], $instance['company']);
     };
-    $app["service:prices:{$key}"] = function (Application $app) use ($apiClient) {
-        return new \Lunches\Actualizer\Service\PricesService($apiClient, $app['api:access-token']);
+    $app["service:prices:{$key}"] = function (Application $app) use ($apiClient, $instance) {
+        return new \Lunches\Actualizer\Service\PricesService($apiClient, $app['api:access-token'], $instance['company']);
     };
-    $app["service:dishes:{$key}"] = function (Application $app) use ($apiClient) {
-        return new \Lunches\Actualizer\Service\DishesService($apiClient, $app['api:access-token']);
+    $app["service:dishes:{$key}"] = function (Application $app) use ($apiClient, $instance) {
+        return new \Lunches\Actualizer\Service\DishesService($apiClient, $app['api:access-token'], $instance['company']);
     };
     $app["service:users:{$key}"] = function (Application $app) use ($apiClient, $instance) {
-        return new \Lunches\Actualizer\Service\UsersService($apiClient, $app['api:access-token'], $instance['key']);
+        return new \Lunches\Actualizer\Service\UsersService($apiClient, $app['api:access-token'], $instance['company']);
     };
 
     $app["synchronizer:menus:{$key}"] = function(Application $app) use ($key) {
