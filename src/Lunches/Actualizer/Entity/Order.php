@@ -93,12 +93,39 @@ class Order implements \JsonSerializable
     public function toDisplayString()
     {
         $dishTypes = $this->orderedDishTypes();
-        $dishTypes = $this->translate($dishTypes);
+        $dishTypes = array_map([$this, 'translate'], $dishTypes);
         $dishTypes = implode(', ', $dishTypes);
 
         return $this->translate($this->getSize()).' - '.$dishTypes;
     }
 
+    /**
+     * @param Menu[] $menus
+     * @return array|Menu[]
+     */
+    public function compatibleMenus($menus)
+    {
+        $menus = array_filter($menus, [$this, 'isCookingAt']);
+        $menus = array_filter($menus, [$this, 'isCookingFor']);
+        $menus = array_filter($menus, [$this, 'isCookingDishes']);
+
+        return $menus;
+    }
+
+    public function resolveMenuType($menus)
+    {
+        $menus = $this->compatibleMenus($menus);
+
+        $menuTypes = array_map([$this, 'getMenuType'], $menus);
+        $menuTypes = array_filter($menuTypes);
+        $menuTypes = array_map([$this, 'translate'], $menuTypes);
+
+        if (!count($menuTypes)) {
+            throw new \RuntimeException('Can not resolve menu type');
+        }
+
+        return array_shift($menuTypes);
+    }
     public function clear()
     {
         return $this->lineItems = [];
@@ -206,6 +233,23 @@ class Order implements \JsonSerializable
         return self::SIZE_MEDIUM;
     }
 
+    private function isCookingAt(Menu $menu)
+    {
+        return $menu->isCookingAt($this->date());
+    }
+
+    private function isCookingFor(Menu $menu)
+    {
+        return $menu->isCookingFor($this->address()->company());
+    }
+
+    private function isCookingDishes(Menu $menu)
+    {
+        return array_reduce($this->lineItems(), function ($isPreviousCooking, LineItem $lineItem) use ($menu) {
+            return $isPreviousCooking && $menu->isCooking($lineItem->dish());
+        }, true);
+    }
+
     private function setShipmentDate($date)
     {
         if ($date instanceof \DateTimeImmutable) {
@@ -261,23 +305,24 @@ class Order implements \JsonSerializable
         return array_shift($sizes);
     }
 
-    private function translate($value)
+    private function getMenuType(Menu $menu)
     {
-        if (is_array($value)) {
-            return array_map([$this, 'translateScalar'], $value);
-        }
-        return $this->translateScalar($value);
+        return $menu->type();
     }
 
-    private function translateScalar($value)
+    private function translate($value)
     {
         $map = [
             'medium' => 'Средняя',
             'big' => 'Большая',
+
             'meat' => 'Мясо',
             'garnish' => 'Гарнир',
             'salad' => 'Салат',
             'fish' => 'Рыба',
+
+            'regular' => 'Обычное меню',
+            'diet' => 'Диетическое меню',
         ];
 
         return array_key_exists($value, $map) ? $map[$value] : $value;

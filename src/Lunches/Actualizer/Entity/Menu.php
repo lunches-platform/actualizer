@@ -65,19 +65,6 @@ class Menu
             in_array(self::DISH_TYPE_SALAD, $dishTypes, true);
     }
 
-    public function resolveMenuType(Order $order)
-    {
-        if (!$this->isCookingAt($order->date())) {
-            throw new \InvalidArgumentException('Provided Menu is not cooking at needed day');
-        }
-
-        if ($this->canServeOrder($order)) {
-            return $this->type;
-        }
-
-        return null;
-    }
-
     public function withoutMeat()
     {
         return $this->newDishes(
@@ -124,6 +111,15 @@ class Menu
     {
         /** @noinspection TypeUnsafeComparisonInspection */
         return $this->date == $date;
+    }
+    public function isCookingFor($company)
+    {
+        return $this->company === $company;
+    }
+
+    public function isCooking($dish)
+    {
+        return in_array($dish['id'], $this->dishIds, true);
     }
 
     /**
@@ -222,17 +218,4 @@ class Menu
         }, $dishes);
         $this->dishes = $dishes;
     }
-
-    private function canServeOrder(Order $order)
-    {
-        return array_reduce($order->lineItems(), function ($isCooking, LineItem $lineItem) {
-            return $isCooking && $this->isDishCooking($lineItem->dish());
-        }, true);
-    }
-
-    private function isDishCooking($dish)
-    {
-        return in_array($dish['id'], $this->dishIds, true);
-    }
-
 }
