@@ -93,6 +93,18 @@ class Order implements \JsonSerializable
         ];
     }
 
+    public function toDisplayString()
+    {
+        $dishes = array_map(function($lineItem) {
+            return $lineItem['dishId'];
+        }, $this->lineItems);
+        $dishes = implode(', ', $dishes);
+
+        $size = count($this->lineItems) > 0 ? $this->lineItems[0]['size'] : '';
+
+        return $size.' - '.$dishes;
+    }
+
     public function clear()
     {
         return $this->lineItems = [];
