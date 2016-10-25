@@ -22,7 +22,7 @@ class Order implements \JsonSerializable
      */
     private $address;
     /**
-     * @var array
+     * @var LineItem[]
      */
     private $lineItems;
 
@@ -81,30 +81,51 @@ class Order implements \JsonSerializable
         $dishes = $this->dishesFromOrderString($orderStr, $menu);
 
         array_walk($dishes, function ($dish) use ($size) {
-            $this->addLineItem($dish['id'], $size);
+            $this->addLineItem($dish, $size);
         });
     }
 
-    public function addLineItem($dishId, $size)
+    public function addLineItem($dish, $size)
     {
-        $this->lineItems[] = [
-            'dishId' => $dishId,
-            'size' => $size,
-        ];
+        $this->lineItems[] = new LineItem($this, $dish, $size);
     }
 
     public function toDisplayString()
     {
-        $dishes = array_map(function($lineItem) {
-            return $lineItem['dishId'];
-        }, $this->lineItems);
-        $dishes = implode(', ', $dishes);
+        $dishTypes = $this->orderedDishTypes();
+        $dishTypes = array_map([$this, 'translate'], $dishTypes);
+        $dishTypes = implode(', ', $dishTypes);
 
-        $size = count($this->lineItems) > 0 ? $this->lineItems[0]['size'] : '';
-
-        return $size.' - '.$dishes;
+        return $this->translate($this->getSize()).' - '.$dishTypes;
     }
 
+    /**
+     * @param Menu[] $menus
+     * @return array|Menu[]
+     */
+    public function compatibleMenus($menus)
+    {
+        $menus = array_filter($menus, [$this, 'isCookingAt']);
+        $menus = array_filter($menus, [$this, 'isCookingFor']);
+        $menus = array_filter($menus, [$this, 'isCookingDishes']);
+
+        return $menus;
+    }
+
+    public function resolveMenuType($menus)
+    {
+        $menus = $this->compatibleMenus($menus);
+
+        $menuTypes = array_map([$this, 'getMenuType'], $menus);
+        $menuTypes = array_filter($menuTypes);
+        $menuTypes = array_map([$this, 'translate'], $menuTypes);
+
+        if (!count($menuTypes)) {
+            throw new \RuntimeException('Can not resolve menu type');
+        }
+
+        return array_shift($menuTypes);
+    }
     public function clear()
     {
         return $this->lineItems = [];
@@ -121,6 +142,12 @@ class Order implements \JsonSerializable
         }
         return $this->shipmentDate;
     }
+
+    public function lineItems()
+    {
+        return $this->lineItems;
+    }
+
     public static function fromArray(array $data)
     {
         Assert::keyExists($data, 'shipmentDate');
@@ -140,7 +167,8 @@ class Order implements \JsonSerializable
         $items = $data['items'];
         foreach ($items as $item) {
             Assert::keyExists($item, 'size');
-            $order->addLineItem($item['product']['id'], $item['size']);
+            Assert::keyExists($item, 'product');
+            $order->addLineItem($item['product'], $item['size']);
         }
 
         return $order;
@@ -205,6 +233,23 @@ class Order implements \JsonSerializable
         return self::SIZE_MEDIUM;
     }
 
+    private function isCookingAt(Menu $menu)
+    {
+        return $menu->isCookingAt($this->date());
+    }
+
+    private function isCookingFor(Menu $menu)
+    {
+        return $menu->isCookingFor($this->address()->company());
+    }
+
+    private function isCookingDishes(Menu $menu)
+    {
+        return array_reduce($this->lineItems(), function ($isPreviousCooking, LineItem $lineItem) use ($menu) {
+            return $isPreviousCooking && $menu->isCooking($lineItem->dish());
+        }, true);
+    }
+
     private function setShipmentDate($date)
     {
         if ($date instanceof \DateTimeImmutable) {
@@ -238,5 +283,48 @@ class Order implements \JsonSerializable
     public function jsonSerialize()
     {
         return $this->toArray();
+    }
+
+    private function orderedDishTypes()
+    {
+        return array_map(function(LineItem $lineItem) {
+            return $lineItem->dishType();
+        }, $this->lineItems);
+    }
+
+    private function getSize()
+    {
+        $sizes = [];
+        foreach ($this->lineItems as $lineItem) {
+            $sizes[] = $lineItem->size();
+        }
+        $sizes = array_unique($sizes);
+        if (count($sizes) > 1) {
+            throw new \RuntimeException('There are more than one Size found per order');
+        }
+        return array_shift($sizes);
+    }
+
+    private function getMenuType(Menu $menu)
+    {
+        return $menu->type();
+    }
+
+    private function translate($value)
+    {
+        $map = [
+            'medium' => 'Средняя',
+            'big' => 'Большая',
+
+            'meat' => 'Мясо',
+            'garnish' => 'Гарнир',
+            'salad' => 'Салат',
+            'fish' => 'Рыба',
+
+            'regular' => 'Обычное меню',
+            'diet' => 'Диетическое меню',
+        ];
+
+        return array_key_exists($value, $map) ? $map[$value] : $value;
     }
 }

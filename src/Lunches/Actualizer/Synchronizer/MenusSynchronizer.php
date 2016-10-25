@@ -86,7 +86,7 @@ class MenusSynchronizer
 
             try {
                 $this->syncMenu(
-                    new Menu(111, $menuDate, $menuType, $this->constructDishes($weekDayMenu))
+                    new Menu(111, $menuDate, $menuType, $this->constructDishes($weekDayMenu), $this->menusService->company())
                 );
             } catch (\Exception $e) {
                 if ($e instanceof \RuntimeException) {

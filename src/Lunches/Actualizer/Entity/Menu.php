@@ -25,6 +25,15 @@ class Menu
      * @var array of dishes
      */
     private $dishes;
+    /**
+     * @var string
+     */
+    private $company;
+    /**
+     * Cache property
+     * @var array
+     */
+    private $dishIds = [];
 
     private static $types = ['diet', 'regular'];
     private static $dateFormat = 'Y-m-d';
@@ -34,11 +43,13 @@ class Menu
     const DISH_TYPE_SALAD = 'salad';
     const DISH_TYPE_GARNISH = 'garnish';
 
-    public function __construct($id, $date, $type, array $dishes)
+    public function __construct($id, $date, $type, array $dishes, $company)
     {
         Assert::numeric($id);
+        Assert::string($company);
 
         $this->id = $id;
+        $this->company = $company;
         $this->setDate($date);
         $this->setType($type);
         $this->setDishes($dishes);
@@ -101,6 +112,15 @@ class Menu
         /** @noinspection TypeUnsafeComparisonInspection */
         return $this->date == $date;
     }
+    public function isCookingFor($company)
+    {
+        return $this->company === $company;
+    }
+
+    public function isCooking($dish)
+    {
+        return in_array($dish['id'], $this->dishIds, true);
+    }
 
     /**
      * @param bool $toString
@@ -137,13 +157,15 @@ class Menu
         Assert::keyExists($data, 'date');
         Assert::keyExists($data, 'type');
         Assert::keyExists($data, 'dishes');
+        Assert::keyExists($data, 'company');
         Assert::isArray($data['dishes']);
 
         return new Menu(
             $data['id'],
             $data['date'],
             $data['type'],
-            $data['dishes']
+            $data['dishes'],
+            $data['company']
         );
     }
 
@@ -163,7 +185,7 @@ class Menu
 
     private function newDishes(array $dishes)
     {
-        return new Menu($this->id, $this->date, $this->type, $dishes);
+        return new Menu($this->id, $this->date, $this->type, $dishes, $this->company);
     }
 
     private function setDate($date)
@@ -188,10 +210,12 @@ class Menu
     {
         foreach ($dishes as $dish) {
             Assert::keyExists($dish, 'type');
+            Assert::keyExists($dish, 'id');
         }
 
+        $this->dishIds = array_map(function ($dish) {
+            return $dish['id'];
+        }, $dishes);
         $this->dishes = $dishes;
     }
-
-
 }
