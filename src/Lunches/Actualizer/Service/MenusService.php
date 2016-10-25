@@ -81,6 +81,7 @@ class MenusService extends AbstractService
 
     private function fromArray(array $menu)
     {
+        $menu['company'] = $this->company;
         return Menu::fromArray($menu);
     }
 }
