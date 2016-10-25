@@ -3,10 +3,7 @@
 namespace Lunches\Actualizer\Command;
 
 use Knp\Command\Command;
-use Lunches\Actualizer\CookReport;
-use Lunches\Actualizer\Synchronizer\OrdersSynchronizer;
-use Monolog\Logger;
-use Symfony\Bridge\Monolog\Handler\ConsoleHandler;
+use Lunches\Actualizer\CookingPackingReport;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -37,7 +34,7 @@ class ReportsCommand extends Command
     }
 
     /**
-     * @return CookReport
+     * @return CookingPackingReport
      */
     private function getCookReport()
     {

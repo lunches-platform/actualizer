@@ -7,7 +7,7 @@ use League\Plates\Engine;
 use Lunches\Actualizer\Entity\Order;
 use Lunches\Actualizer\Service\OrdersService;
 
-class CookReport
+class CookingPackingReport
 {
     /** @var OrdersService[] */
     private $ordersServices;
@@ -146,8 +146,13 @@ class CookReport
      */
     private function fetchOrders()
     {
-        $startDate = new \DateTimeImmutable('monday this week');
-        $endDate = new \DateTimeImmutable('friday this week');
+        if (new \DateTimeImmutable('now') > new \DateTimeImmutable('friday + 13 hours')) {
+            $startDate = new \DateTimeImmutable('monday next week');
+            $endDate = new \DateTimeImmutable('friday next week');
+        } else {
+            $startDate = new \DateTimeImmutable('monday this week');
+            $endDate = new \DateTimeImmutable('friday this week');
+        }
 
         foreach ($this->ordersServices as $ordersService) {
             try {
