@@ -45,6 +45,7 @@
 <body>
 <div class="container-fluid">
 
+    <?php if (count($ordersTree) > 0) : ?>
     <?php foreach ($ordersTree as $dateGroup): ?>
 
         <h1><?=mb_strtoupper(strftime('%a', strtotime($dateGroup['name'])));?> (<?=$dateGroup['count']?>)</h1>
@@ -81,6 +82,12 @@
         <hr>
 
     <?php endforeach; ?>
+    <?php else: ?>
+        <h3>
+            Заказов нет, либо они не оплачены
+        </h3>
+
+    <?php endif; ?>
 
 </div>
 
