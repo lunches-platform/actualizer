@@ -52,7 +52,7 @@ class ReportsCommand extends Command
     {
         $rootDir =  $this->getSilexApplication()['root_dir'];
 
-        return $rootDir.'/recorded_clients_table.html';
+        return $rootDir.'/web/recorded_clients_table.html';
     }
 
     /**
