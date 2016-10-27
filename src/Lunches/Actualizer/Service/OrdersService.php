@@ -23,6 +23,7 @@ class OrdersService extends AbstractService
             'query' => [
                 'startDate' => $startDate->format($this->apiDateFormat),
                 'endDate' => $endDate->format($this->apiDateFormat),
+                'paid' => 1,
             ]
         ]);
         $orders = array_map([$this, 'fromArray'], $orders);

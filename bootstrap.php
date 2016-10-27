@@ -97,11 +97,12 @@ $app['get-services'] = $app->protect(function ($name) use ($app, $instances) {
     }, $instances);
 });
 
-$app['cook-report'] = function (Application $app) {
+$app['cooking-packing-report'] = function (Application $app) {
     return new \Lunches\Actualizer\CookingPackingReport(
         $app['get-services']('orders'),
         $app['get-services']('menus'),
-        $app['plates']
+        $app['plates'],
+        $app['logger']
     );
 };
 $app['plates'] = function () {

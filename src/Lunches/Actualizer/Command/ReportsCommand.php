@@ -4,6 +4,8 @@ namespace Lunches\Actualizer\Command;
 
 use Knp\Command\Command;
 use Lunches\Actualizer\CookingPackingReport;
+use Monolog\Logger;
+use Symfony\Bridge\Monolog\Handler\ConsoleHandler;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -25,7 +27,7 @@ class ReportsCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $data = $this->getCookReport()->forWeek();
+        $data = $this->getCookReport($output)->forWeek();
 //        $output->write($data);
 
         file_put_contents($this->getFilename(), $data);
@@ -34,17 +36,36 @@ class ReportsCommand extends Command
     }
 
     /**
+     * @param OutputInterface $output
      * @return CookingPackingReport
      */
-    private function getCookReport()
+    private function getCookReport(OutputInterface $output)
     {
-        return $this->getSilexApplication()['cook-report'];
+        /** @var CookingPackingReport $report */
+        $report = $this->getSilexApplication()['cooking-packing-report'];
+        $report->setLogger($this->getConsoleLogger($output));
+
+        return $report;
     }
 
     private function getFilename()
     {
         $rootDir =  $this->getSilexApplication()['root_dir'];
 
-        return $rootDir.'/recorded_clients_table.html';
+        return $rootDir.'/web/recorded_clients_table.html';
+    }
+
+    /**
+     * @param OutputInterface $output
+     * @return Logger
+     */
+    private function getConsoleLogger(OutputInterface $output)
+    {
+        /** @var Logger $logger */
+        $logger = $this->getSilexApplication()['logger'];
+        $consoleHandler =  new ConsoleHandler($output);
+        $logger->pushHandler($consoleHandler);
+
+        return $logger;
     }
 }

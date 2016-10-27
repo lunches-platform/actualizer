@@ -4,6 +4,7 @@
 namespace Lunches\Actualizer;
 
 use League\Plates\Engine;
+use Monolog\Logger;
 use Lunches\Actualizer\Entity\Order;
 use Lunches\Actualizer\Service\MenusService;
 use Lunches\Actualizer\Service\OrdersService;
@@ -14,16 +15,19 @@ class CookingPackingReport
     private $ordersServices;
     /** @var MenusService[] */
     private $menusServices;
-    /** @var  Engine */
+    /** @var Engine */
     private $templates;
     /** @var array */
     private $menus = [];
+    /** @var Logger */
+    private $logger;
 
-    public function __construct($ordersServices, $menusServices, Engine $engine)
+    public function __construct($ordersServices, $menusServices, Engine $engine, Logger $logger)
     {
         $this->ordersServices = $ordersServices;
         $this->menusServices = $menusServices;
         $this->templates = $engine;
+        $this->logger = $logger;
         setlocale(LC_ALL, 'ru_RU.UTF-8');
     }
 
@@ -54,22 +58,27 @@ class CookingPackingReport
      */
     public function forWeek()
     {
+        $this->logger->addInfo('Start cooking & packing report generation ...');
         $ordersTree = [];
 
         list ($startDate, $endDate) = $this->getWeekRange();
 
         $this->initMenus($startDate, $endDate);
 
-        foreach ($this->fetchOrders($startDate, $endDate) as $order) {
+        $orders = $this->fetchOrders($startDate, $endDate);
+        $this->logger->addInfo('Create orders report');
+
+        foreach ($orders as $order) {
 
             try {
                 $this->addToTree($order, $ordersTree);
             } catch (\RuntimeException $e) {
-                // TODO log
+                $this->logger->addWarning('Order has not been added to report due to: '. $e->getMessage());
                 continue;
             }
         }
 
+        $this->logger->addInfo('Finish cooking & packing report generation ... Start rendering');
         return $this->render($ordersTree);
     }
 
@@ -182,13 +191,14 @@ class CookingPackingReport
     private function fetchOrders(\DateTimeImmutable $startDate, \DateTimeImmutable $endDate)
     {
         foreach ($this->ordersServices as $ordersService) {
+            $this->logger->addInfo("Fetch paid orders of {$ordersService->company()} company");
             try {
                 $orders = $ordersService->findBetween($startDate, $endDate);
                 foreach ($orders as $order) {
                     yield $order;
                 }
             } catch (\Exception $e) {
-                // TODO log
+                $this->logger->addError("Skip orders from {$ordersService->company()} company due to: ". $e->getMessage());
                 continue;
             }
         }
@@ -197,13 +207,14 @@ class CookingPackingReport
     private function initMenus(\DateTimeImmutable $startDate, \DateTimeImmutable $endDate)
     {
         foreach ($this->menusServices as $menusService) {
+            $this->logger->addInfo("Fetch menus of {$menusService->company()} company");
             try {
                 $menus = $menusService->findBetween($startDate, $endDate);
                 foreach ($menus as $menu) {
                     $this->menus[] = $menu;
                 }
             } catch (\Exception $e) {
-                // TODO log
+                $this->logger->addError("Skip init menus for {$menusService->company()} company due to: ". $e->getMessage());
                 continue;
             }
         }
@@ -212,5 +223,12 @@ class CookingPackingReport
     private function render($ordersTree)
     {
         return $this->templates->render('report', ['ordersTree' => $ordersTree]);
+    }
+    /**
+     * @param Logger $logger
+     */
+    public function setLogger(Logger $logger)
+    {
+        $this->logger = $logger;
     }
 }
