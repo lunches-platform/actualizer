@@ -28,14 +28,16 @@ class MenusSynchronizerCommand extends Command
      * @param OutputInterface $output
      *
      * @return int|null|void
+     * @throws \InvalidArgumentException
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         /** @var array $menusSheets */
         $menusSheets = $this->getSilexApplication()['google-sheets:menus'];
+        $menusSynchronizer = $this->getMenusSynchronizer($input, $output);
         try {
             foreach ($menusSheets as $sheet) {
-                $stat = $this->getMenusSynchronizer($input, $output)->sync($sheet['id'], $sheet['range']);
+                $stat = $menusSynchronizer->sync($sheet['id'], $sheet['range']);
                 $output->writeln($stat);
             }
         } catch (\Exception $e) {
