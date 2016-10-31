@@ -34,7 +34,12 @@ class OrdersService extends AbstractService
     public function create(Order $order)
     {
         return $this->makeRequest('POST', '/orders', [
-            'json' => $order,
+            'json' => [
+                'userId' => $order->user()['id'],
+                'shipmentDate' => $order->date(true),
+                'address' => $order->address()->toString(),
+                'items' => $order->lineItems(),
+            ],
         ]);
     }
     private function fromArray(array $order)

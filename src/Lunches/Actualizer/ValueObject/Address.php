@@ -39,7 +39,7 @@ class Address
 
     public function toString()
     {
-        return implode(', ', [$this->city, $this->street, $this->company]);
+        return implode(', ', [$this->city, $this->company, $this->street]);
     }
 
     /**
