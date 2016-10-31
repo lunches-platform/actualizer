@@ -218,7 +218,7 @@ class OrdersSynchronizer
     }
 
     /**
-     * Find or register user by userName
+     * Find user by userName
      *
      * @param string $userName
      * @param string $address
@@ -227,11 +227,10 @@ class OrdersSynchronizer
      */
     private function getUser($userName, $address)
     {
-        // TODO implement UserSynchronizer
         $user = $this->usersService->findOne($userName);
 
         if (!$user) {
-            $user = $this->usersService->create($userName, $address);
+            throw new \RuntimeException("User {$userName} not found");
         }
         if (!$user['address']) {
             $user['address'] = $address;
