@@ -263,8 +263,12 @@ class OrdersSynchronizer
             /** @var array $weekOrders */
             $weekOrders = $response->getValues();
 
-            yield [ $weekDateRange, $weekOrders ];
+            yield [ $this->getDateRange($weekDateRange), $weekOrders ];
         }
+    }
+    private function getDateRange($sheetTitle)
+    {
+        return trim(str_replace('- diet', '', mb_strtolower($sheetTitle)));
     }
 
     /**
