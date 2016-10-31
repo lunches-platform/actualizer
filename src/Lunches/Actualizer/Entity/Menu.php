@@ -42,6 +42,15 @@ class Menu
     const DISH_TYPE_FISH = 'fish';
     const DISH_TYPE_SALAD = 'salad';
     const DISH_TYPE_GARNISH = 'garnish';
+    const DISH_TYPE_MAIN = 'main';
+
+    public static $dishTypes = [
+        self::DISH_TYPE_MAIN,
+        self::DISH_TYPE_MEAT,
+        self::DISH_TYPE_FISH,
+        self::DISH_TYPE_GARNISH,
+        self::DISH_TYPE_SALAD,
+    ];
 
     public function __construct($id, $date, $type, array $dishes, $company)
     {
@@ -55,15 +64,6 @@ class Menu
         $this->setDishes($dishes);
     }
 
-    public function isFull()
-    {
-        $dishTypes = $this->cookingDishTypes();
-
-        return
-            (in_array(self::DISH_TYPE_MEAT, $dishTypes, true) || in_array(self::DISH_TYPE_FISH, $dishTypes, true)) &&
-            in_array(self::DISH_TYPE_GARNISH, $dishTypes, true) &&
-            in_array(self::DISH_TYPE_SALAD, $dishTypes, true);
-    }
 
     public function withoutMeat()
     {
@@ -88,6 +88,10 @@ class Menu
 
     public function onlyMeat()
     {
+        // fix probable invalid user input for combined dishes
+        if ($this->hasMainDish() && !$this->hasMeat()) {
+            return $this;
+        }
         return $this->newDishes(
             $this->onlyDishType('meat')
         );
@@ -102,6 +106,10 @@ class Menu
 
     public function onlyGarnish()
     {
+        // fix probable invalid user input for combined dishes
+        if ($this->hasMainDish() && !$this->hasGarnish()) {
+            return $this;
+        }
         return $this->newDishes(
             $this->onlyDishType('garnish')
         );
@@ -168,9 +176,25 @@ class Menu
             $data['company']
         );
     }
+    private function isFull()
+    {
+        $dishTypes = $this->cookingDishTypes();
+
+        $isMain = (in_array(self::DISH_TYPE_MEAT, $dishTypes, true) || in_array(self::DISH_TYPE_FISH, $dishTypes, true));
+        $isGarnish = in_array(self::DISH_TYPE_GARNISH, $dishTypes, true);
+        $isSalad = in_array(self::DISH_TYPE_SALAD, $dishTypes, true);
+
+        if (in_array(self::DISH_TYPE_MAIN, $dishTypes, true)) {
+            $isMain = true;
+            $isGarnish = true;
+        }
+
+        return $isMain && $isGarnish && $isSalad;
+    }
 
     private function withoutDishType($dishType)
     {
+        $this->assertFull();
         return array_filter($this->dishes, function ($dish) use ($dishType) {
             return $dish['type'] !== $dishType;
         });
@@ -178,6 +202,7 @@ class Menu
 
     private function onlyDishType($dishType)
     {
+        $this->assertFull();
         return array_filter($this->dishes, function ($dish) use ($dishType) {
             return $dish['type'] === $dishType;
         });
@@ -218,4 +243,33 @@ class Menu
         }, $dishes);
         $this->dishes = $dishes;
     }
+    private function assertFull()
+    {
+        if (!$this->isFull()) {
+            throw new \InvalidArgumentException('Menu must be full to perform this action');
+        }
+    }
+
+    private function hasDishType($type)
+    {
+        Assert::oneOf($type, self::$dishTypes);
+
+        return in_array($type, $this->cookingDishTypes(), true);
+    }
+
+    private function hasMeat()
+    {
+        return $this->hasDishType(self::DISH_TYPE_MEAT);
+    }
+
+    private function hasGarnish()
+    {
+        return $this->hasDishType(self::DISH_TYPE_GARNISH);
+    }
+
+    private function hasMainDish()
+    {
+        return $this->hasDishType(self::DISH_TYPE_MAIN);
+    }
+
 }

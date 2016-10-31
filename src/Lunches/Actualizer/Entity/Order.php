@@ -73,10 +73,6 @@ class Order implements \JsonSerializable
             throw new \InvalidArgumentException('Provided Menu is not cooking at needed day');
         }
 
-        if (!$menu->isFull()) {
-            throw new \InvalidArgumentException('To create LineItems Menu must be full');
-        }
-
         $size = $this->sizeFromOrderString($orderStr);
         $dishes = $this->dishesFromOrderString($orderStr, $menu);
 
