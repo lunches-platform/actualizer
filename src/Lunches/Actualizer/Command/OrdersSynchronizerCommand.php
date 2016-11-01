@@ -28,13 +28,17 @@ class OrdersSynchronizerCommand extends Command
      * @param OutputInterface $output
      *
      * @return int|null|void
+     * @throws \InvalidArgumentException
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $spreadsheetId = $this->getSilexApplication()['google-sheets:orders:spreadsheet-id'];
-        $sheetRange = $this->getSilexApplication()['google-sheets:orders:spreadsheet-range'];
+        /** @var array $ordersSheets */
+        $ordersSheets = $this->getSilexApplication()['google-sheets:orders'];
+        $ordersSynchronizer = $this->getOrdersSynchronizer($input, $output);
         try {
-            $this->getOrdersSynchronizer($input, $output)->sync($spreadsheetId, $sheetRange);
+            foreach ($ordersSheets as $sheet) {
+                $ordersSynchronizer->sync($sheet['id'], $sheet['range']);
+            }
         } catch (\Exception $e) {
             $this->getConsoleLogger($output)->addError($e->getMessage());
         }

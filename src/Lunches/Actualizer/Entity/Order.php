@@ -73,10 +73,6 @@ class Order implements \JsonSerializable
             throw new \InvalidArgumentException('Provided Menu is not cooking at needed day');
         }
 
-        if (!$menu->isFull()) {
-            throw new \InvalidArgumentException('To create LineItems Menu must be full');
-        }
-
         $size = $this->sizeFromOrderString($orderStr);
         $dishes = $this->dishesFromOrderString($orderStr, $menu);
 
@@ -228,6 +224,9 @@ class Order implements \JsonSerializable
         }
         if (in_array($orderString, [ self::MEDIUM, self::MEDIUM_NO_MEAT, self::MEDIUM_NO_SALAD, self::MEDIUM_NO_GARNISH ], true)) {
             return self::SIZE_MEDIUM;
+        }
+        if (in_array($orderString, [ self::ONLY_MEAT, self::ONLY_GARNISH, self::ONLY_SALAD ], true)) {
+            return self::SIZE_BIG;
         }
         // by default
         return self::SIZE_MEDIUM;

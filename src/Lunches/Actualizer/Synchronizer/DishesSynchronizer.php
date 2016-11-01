@@ -29,7 +29,7 @@ class DishesSynchronizer
         $this->dishesService = $dishesService;
     }
 
-    public function syncOne($name, $type)
+    public function findOne($name)
     {
         $name = trim($name);
         $this->loadCache();
@@ -38,9 +38,6 @@ class DishesSynchronizer
 
         if (!$dish) {
             throw new \RuntimeException('Dish "'.$name.'" not found');
-//            $this->logger->addInfo('Dish not found. Start creating...');
-//            $dish = $this->dishesService->create($name, $type);
-//            $this->logger->addInfo('Dish created');
         }
 
         return $dish;

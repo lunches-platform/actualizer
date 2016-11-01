@@ -6,7 +6,7 @@ namespace Lunches\Actualizer\Entity;
 
 use Webmozart\Assert\Assert;
 
-class LineItem
+class LineItem implements \JsonSerializable
 {
     /**
      * @var array
@@ -74,4 +74,11 @@ class LineItem
     }
 
 
+    public function jsonSerialize()
+    {
+        return [
+            'dishId' => $this->dish['id'],
+            'size' => $this->size,
+        ];
+    }
 }

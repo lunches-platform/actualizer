@@ -64,6 +64,7 @@ class OrdersSynchronizer
     public function sync($spreadsheetId, $sheetRange)
     {
         foreach ($this->readWeeks($spreadsheetId, $sheetRange) as list($dateRange, $weekOrders)) {
+            $this->logger->addInfo("Start sync {$dateRange} week...");
             try {
                 $weekMenus = $this->getWeekMenus(new WeekDays($dateRange));
                 $orders = $this->createFromRange($weekOrders, $weekMenus);
@@ -104,6 +105,8 @@ class OrdersSynchronizer
             try {
                 $user = $this->getUser($userName, $lastAddress);
                 $userOrders = $this->createWeekOrders($user, $userWeekOrders, $weekMenus);
+                $this->logger->addInfo(sprintf('User %s made %s orders this week', $userName, count($userOrders)));
+
                 foreach ($userOrders as $order) {
                     yield $order;
                 }
@@ -120,15 +123,16 @@ class OrdersSynchronizer
      * @param array $user
      * @param array $strOrders
      * @param Menu[] $menus
-     * @return \Generator
+     * @return array
      * @throws \Exception
      */
     private function createWeekOrders($user, $strOrders, array $menus)
     {
         if (!$strOrders) {
-            yield;
+            return [];
         }
 
+        $userOrders = [];
         foreach ($strOrders as $i => $weekDayOrder) {
             // user can skip several days
             if (!$weekDayOrder) {
@@ -140,7 +144,7 @@ class OrdersSynchronizer
                 $order->setItemsFromOrderString($menu, $weekDayOrder);
                 unset($menu);
 
-                yield $order;
+                $userOrders[] =  $order;
 
             } catch (\Exception $e) {
                 if ($e instanceof \InvalidArgumentException) {
@@ -152,6 +156,8 @@ class OrdersSynchronizer
                 throw $e;
             }
         }
+
+        return $userOrders;
     }
 
     /**
@@ -212,7 +218,7 @@ class OrdersSynchronizer
     }
 
     /**
-     * Find or register user by userName
+     * Find user by userName
      *
      * @param string $userName
      * @param string $address
@@ -221,11 +227,10 @@ class OrdersSynchronizer
      */
     private function getUser($userName, $address)
     {
-        // TODO implement UserSynchronizer
         $user = $this->usersService->findOne($userName);
 
         if (!$user) {
-            $user = $this->usersService->create($userName, $address);
+            throw new \RuntimeException("User {$userName} not found");
         }
         if (!$user['address']) {
             $user['address'] = $address;
@@ -257,8 +262,12 @@ class OrdersSynchronizer
             /** @var array $weekOrders */
             $weekOrders = $response->getValues();
 
-            yield [ $weekDateRange, $weekOrders ];
+            yield [ $this->getDateRange($weekDateRange), $weekOrders ];
         }
+    }
+    private function getDateRange($sheetTitle)
+    {
+        return trim(str_replace('- diet', '', mb_strtolower($sheetTitle)));
     }
 
     /**

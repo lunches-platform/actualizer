@@ -104,10 +104,17 @@ class MenusSynchronizer
         Assert::keyExists($weekDayMenu, 2);
         Assert::keyExists($weekDayMenu, 4);
 
+        list ($meatOrFish,,$garnish,,$salad) = $weekDayMenu;
+
         $dishes = [];
-        $dishes[] = $this->dishesSynchronizer->syncOne($weekDayMenu[0], 'meat');
-        $dishes[] = $this->dishesSynchronizer->syncOne($weekDayMenu[2], 'garnish');
-        $dishes[] = $this->dishesSynchronizer->syncOne($weekDayMenu[4], 'salad');
+        if (!$meatOrFish || !$garnish) {
+            $mainDish = $meatOrFish ?: $garnish;
+            $dishes[] = $this->dishesSynchronizer->findOne($mainDish);
+        } else {
+            $dishes[] = $this->dishesSynchronizer->findOne($meatOrFish);
+            $dishes[] = $this->dishesSynchronizer->findOne($garnish);
+        }
+        $dishes[] = $this->dishesSynchronizer->findOne($salad);
 
         return $dishes;
     }
