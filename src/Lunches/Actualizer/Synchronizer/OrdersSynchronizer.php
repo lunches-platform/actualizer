@@ -207,8 +207,11 @@ class OrdersSynchronizer
             try {
                 $existentOrder = $this->ordersService->findOne($order);
                 if (!$existentOrder) {
+                    $this->logger->addInfo('There is no such order. Creating ...');
                     $this->ordersService->create($order);
                     $this->logger->addInfo("Order on {$order->date(true)} of user {$order->user()['fullname']} is created");
+                } else {
+                    $this->logger->addInfo('Such order exists, skip');
                 }
             } catch (ClientException $e) {
                 $this->logger->addWarning("Can't sync user {$order->user()['fullname']} order on {$order->date(true)} due to: ".$e->getMessage());

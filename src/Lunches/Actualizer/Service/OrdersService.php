@@ -9,8 +9,15 @@ class OrdersService extends AbstractService
 {
     public function findOne(Order $order)
     {
-        // TODO https://github.com/lunches-platform/api/issues/145
-        return null;
+        $orders = $this->makeRequest('GET', "/users/{$order->user()['fullname']}/orders", [
+            'query' => [
+                'shipmentDate' => $order->date(true),
+                'items' => $order->lineItems(),
+            ]
+        ]);
+        $orders = array_map([$this, 'fromArray'], $orders);
+
+        return array_shift($orders);
     }
     /**
      * @param \DateTimeImmutable $startDate
