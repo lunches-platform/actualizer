@@ -26,6 +26,10 @@ class Order implements \JsonSerializable
      */
     private $lineItems;
 
+    /** @var int */
+    private $quantity = 1;
+    /** @var int  */
+    private $defaultQuantity = 1;
     private static $dateFormat = 'Y-m-d';
 
     const BIG = 'Большая';
@@ -62,6 +66,7 @@ class Order implements \JsonSerializable
         $this->setShipmentDate($date);
         $this->setUser($user);
         $this->address = $address;
+        $this->quantity = $this->defaultQuantity;
         $this->lineItems = [];
     }
 
@@ -125,6 +130,24 @@ class Order implements \JsonSerializable
     public function clear()
     {
         return $this->lineItems = [];
+    }
+
+    public function addQuantity($num = 1)
+    {
+        Assert::integer($num);
+        Assert::greaterThanEq($num, 0, 'Quantity must be greater than zero');
+
+        $this->quantity += $num;
+    }
+
+    public function resetQuantity()
+    {
+        $this->quantity = $this->defaultQuantity;
+    }
+
+    public function quantity()
+    {
+        return $this->quantity;
     }
 
     /**
