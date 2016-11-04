@@ -61,10 +61,14 @@ class OrdersSynchronizer
         $this->ordersService = $ordersService;
     }
 
-    public function sync($spreadsheetId, $sheetRange)
+    public function sync($spreadsheetId, $sheetRange, array $filters = [])
     {
-        foreach ($this->readWeeks($spreadsheetId, $sheetRange) as list($dateRange, $menuType, $weekOrders)) {
+        foreach ($this->readWeeks($spreadsheetId, $sheetRange, $filters) as list($dateRange, $menuType, $weekOrders)) {
+            if (array_key_exists('menuType', $filters) && $filters['menuType'] !== $menuType) {
+                continue;
+            }
             $this->logger->addInfo("Start sync {$dateRange} week...");
+
             try {
                 $weekMenus = $this->getWeekMenus(new WeekDays($dateRange));
                 $orders = $this->createFromRange($weekOrders, $weekMenus);
@@ -241,12 +245,14 @@ class OrdersSynchronizer
 
         return $user;
     }
+
     /**
      * @param string $spreadsheetId
      * @param string $sheetRange
+     * @param array $filters
      * @return \Generator
      */
-    private function readWeeks($spreadsheetId, $sheetRange)
+    private function readWeeks($spreadsheetId, $sheetRange, array $filters = [])
     {
         $response = $this->sheetsService->spreadsheets->get($spreadsheetId);
         $sheets = $response->getSheets();
@@ -260,14 +266,20 @@ class OrdersSynchronizer
         /** @var \Google_Service_Sheets_Sheet[] $sheets */
         foreach ($sheets as $sheet) {
 
-            $weekDateRange = $sheet->getProperties()->getTitle();
-            $range = $weekDateRange.'!'.$sheetRange;
+            $title = $sheet->getProperties()->getTitle();
+            $weekDateRange = $this->getDateRange($title);
+            if (array_key_exists('weekRange', $filters) && $filters['weekRange'] !== $weekDateRange) {
+                continue;
+            }
+            $range = $title.'!'.$sheetRange;
+
             $response = $this->sheetsService->spreadsheets_values->get($spreadsheetId, $range);
+
 
             /** @var array $weekOrders */
             $weekOrders = $response->getValues();
 
-            yield [ $this->getDateRange($weekDateRange), $menuType, $weekOrders ];
+            yield [ $weekDateRange, $menuType, $weekOrders ];
         }
     }
     private function getDateRange($sheetTitle)
