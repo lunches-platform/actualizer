@@ -28,6 +28,11 @@ class WeekDays
         Assert::isInstanceOf($startDate, \DateTimeImmutable::class);
         Assert::isInstanceOf($endDate, \DateTimeImmutable::class);
 
+        $invalid = 'Invalid week range:';
+        Assert::lessThanEq($startDate, $endDate, $invalid.' startDate must be less than endDate');
+        Assert::eq($startDate->format('N'), 1, $invalid.' week must start with Monday');
+        Assert::eq($endDate->format('N'), 5, $invalid.' week must end with Friday');
+
         $weekDays = [];
         $currentDate = $startDate;
         while ($currentDate <= $endDate) {
@@ -36,6 +41,11 @@ class WeekDays
         }
 
         $this->weekDays = $weekDays;
+    }
+
+    public function toDateRangeString()
+    {
+        return implode('-', array_map([$this, 'dateTimeToString'], $this->weekDays));
     }
 
     public function at($index)
@@ -55,4 +65,9 @@ class WeekDays
     {
         return $this->at(count($this->weekDays) - 1);
     }
+    private function dateTimeToString(\DateTimeImmutable $dateTime)
+    {
+        return $dateTime->format($this->sheetsDateFormat);
+    }
+
 }
