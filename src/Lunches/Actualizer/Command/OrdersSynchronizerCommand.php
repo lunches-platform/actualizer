@@ -8,6 +8,7 @@ use Monolog\Logger;
 use Symfony\Bridge\Monolog\Handler\ConsoleHandler;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
@@ -20,7 +21,10 @@ class OrdersSynchronizerCommand extends Command
      */
     protected function configure()
     {
-        $this->setName('synchronizer:orders')->addArgument('instance', InputArgument::REQUIRED, 'API instance (company) to synchronize orders');
+        $this->setName('synchronizer:orders')
+            ->addArgument('instance', InputArgument::REQUIRED, 'API instance (company) to synchronize orders')
+            ->addOption('menuType', null, InputOption::VALUE_OPTIONAL, 'One of Diet or Regular menu to synchronize')
+            ->addOption('weekRange', null, InputOption::VALUE_OPTIONAL, 'Week range with two dates: startDate and endDate in a format which menu from google sheet has');
     }
 
     /**
@@ -35,9 +39,16 @@ class OrdersSynchronizerCommand extends Command
         /** @var array $ordersSheets */
         $ordersSheets = $this->getSilexApplication()['google-sheets:orders'];
         $ordersSynchronizer = $this->getOrdersSynchronizer($input, $output);
+
+        $menuType = $input->getOption('menuType');
+        $weekRange = $input->getOption('weekRange');
+        $filters = array_filter([
+            'menuType' => $menuType,
+            'weekRange' => $weekRange,
+        ]);
         try {
             foreach ($ordersSheets as $sheet) {
-                $ordersSynchronizer->sync($sheet['id'], $sheet['range']);
+                $ordersSynchronizer->sync($sheet['id'], $sheet['range'], $filters);
             }
         } catch (\Exception $e) {
             $this->getConsoleLogger($output)->addError($e->getMessage());

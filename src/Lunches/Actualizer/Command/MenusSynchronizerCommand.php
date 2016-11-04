@@ -8,6 +8,7 @@ use Monolog\Logger;
 use Symfony\Bridge\Monolog\Handler\ConsoleHandler;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
@@ -20,7 +21,11 @@ class MenusSynchronizerCommand extends Command
      */
     protected function configure()
     {
-        $this->setName('synchronizer:menus')->addArgument('instance', InputArgument::REQUIRED, 'API instance (company) to synchronize menus');
+        $this->setName('synchronizer:menus')
+            ->addArgument('instance', InputArgument::REQUIRED, 'API instance (company) to synchronize menus')
+            ->addOption('menuType', null, InputOption::VALUE_OPTIONAL, 'One of Diet or Regular menu to synchronizer')
+            ->addOption('weekRange', null, InputOption::VALUE_OPTIONAL, 'Week range with two dates: startDate and endDate in a format which menu from google sheet has')
+        ;
     }
 
     /**
@@ -35,9 +40,17 @@ class MenusSynchronizerCommand extends Command
         /** @var array $menusSheets */
         $menusSheets = $this->getSilexApplication()['google-sheets:menus'];
         $menusSynchronizer = $this->getMenusSynchronizer($input, $output);
+
+        $menuType = $input->getOption('menuType');
+        $weekRange = $input->getOption('weekRange');
+        $filters = array_filter([
+            'menuType' => $menuType,
+            'weekRange' => $weekRange,
+        ]);
+
         try {
             foreach ($menusSheets as $sheet) {
-                $stat = $menusSynchronizer->sync($sheet['id'], $sheet['range']);
+                $stat = $menusSynchronizer->sync($sheet['id'], $sheet['range'], $filters);
                 $output->writeln($stat);
             }
         } catch (\Exception $e) {

@@ -159,6 +159,17 @@ class Menu
         return $this->type;
     }
 
+    /**
+     * Whether menu type diet or regular
+     *
+     * @param string $type
+     * @return bool
+     */
+    public function isType($type)
+    {
+        return $this->type === $type;
+    }
+
     public static function fromArray(array $data)
     {
         Assert::keyExists($data, 'id');
