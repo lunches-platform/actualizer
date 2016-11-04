@@ -9,6 +9,7 @@ class UsersService extends AbstractService
 {
     public function findOne($userName)
     {
+        Assert::notEmpty($userName, 'Username must not be empty');
         $users = $this->find($userName);
         return array_shift($users);
     }
