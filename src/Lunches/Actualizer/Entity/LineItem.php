@@ -40,6 +40,14 @@ class LineItem implements \JsonSerializable
         );
     }
 
+    public function toArray()
+    {
+        return [
+            'dishId' => $this->dish['id'],
+            'size' => $this->size,
+        ];
+    }
+
     public function dish()
     {
         return $this->dish;
@@ -76,9 +84,6 @@ class LineItem implements \JsonSerializable
 
     public function jsonSerialize()
     {
-        return [
-            'dishId' => $this->dish['id'],
-            'size' => $this->size,
-        ];
+        return $this->toArray();
     }
 }

@@ -3,21 +3,33 @@
 
 namespace Lunches\Actualizer\Service;
 
+use GuzzleHttp\Exception\ClientException;
+use Lunches\Actualizer\Entity\LineItem;
 use Lunches\Actualizer\Entity\Order;
 
 class OrdersService extends AbstractService
 {
-    public function findOne(Order $order)
+    public function find(Order $order)
     {
-        $orders = $this->makeRequest('GET', "/users/{$order->user()['fullname']}/orders", [
-            'query' => [
-                'shipmentDate' => $order->date(true),
-                'items' => $order->lineItems(),
-            ]
-        ]);
+        try {
+            $username = rawurlencode($order->user()['fullname']);
+            $orders = $this->makeRequest('GET', "/users/{$username}/orders", [
+                'query' => [
+                    'shipmentDate' => $order->date(true),
+                    'items' => array_map(function (LineItem $lineItem) {
+                        return $lineItem->toArray();
+                    }, $order->lineItems()),
+                ]
+            ]);
+        } catch (ClientException $e) {
+            if ($e->getCode() === 404) {
+                return [];
+            }
+            throw $e;
+        }
         $orders = array_map([$this, 'fromArray'], $orders);
 
-        return array_shift($orders);
+        return $orders;
     }
     /**
      * @param \DateTimeImmutable $startDate

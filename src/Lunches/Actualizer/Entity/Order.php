@@ -27,9 +27,9 @@ class Order implements \JsonSerializable
     private $lineItems;
 
     /** @var int */
-    private $quantity = 1;
+    private $quantity;
     /** @var int  */
-    private $defaultQuantity = 1;
+    private $defaultQuantity = 0;
     private static $dateFormat = 'Y-m-d';
 
     const BIG = 'Большая';
