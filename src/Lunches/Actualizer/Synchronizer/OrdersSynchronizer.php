@@ -63,7 +63,7 @@ class OrdersSynchronizer
 
     public function sync($spreadsheetId, $sheetRange)
     {
-        foreach ($this->readWeeks($spreadsheetId, $sheetRange) as list($dateRange, $weekOrders)) {
+        foreach ($this->readWeeks($spreadsheetId, $sheetRange) as list($dateRange, $menuType, $weekOrders)) {
             $this->logger->addInfo("Start sync {$dateRange} week...");
             try {
                 $weekMenus = $this->getWeekMenus(new WeekDays($dateRange));
@@ -251,6 +251,8 @@ class OrdersSynchronizer
         $response = $this->sheetsService->spreadsheets->get($spreadsheetId);
         $sheets = $response->getSheets();
 
+        $menuType = $this->determineMenuType($response->getProperties()->getTitle());
+
         if (!count($sheets)) {
             yield;
         }
@@ -265,12 +267,16 @@ class OrdersSynchronizer
             /** @var array $weekOrders */
             $weekOrders = $response->getValues();
 
-            yield [ $this->getDateRange($weekDateRange), $weekOrders ];
+            yield [ $this->getDateRange($weekDateRange), $menuType, $weekOrders ];
         }
     }
     private function getDateRange($sheetTitle)
     {
         return trim(str_replace('- diet', '', mb_strtolower($sheetTitle)));
+    }
+    private function determineMenuType($sheetTitle)
+    {
+        return mb_stripos($sheetTitle, 'diet') ? 'diet' : 'regular';
     }
 
     /**
