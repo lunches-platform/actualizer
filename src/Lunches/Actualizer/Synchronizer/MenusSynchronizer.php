@@ -58,10 +58,15 @@ class MenusSynchronizer
         $this->pricesGenerator = $pricesGenerator;
     }
 
-    public function sync($spreadsheetId, $sheetRange)
+    public function sync($spreadsheetId, $sheetRange, array $filters = [])
     {
         $menus = [];
-        foreach ($this->readWeeks($spreadsheetId, $sheetRange) as list($dateRange, $menuType, $weekMenus)) {
+        foreach ($this->readWeeks($spreadsheetId, $sheetRange, $filters) as list ($dateRange, $menuType, $weekMenus)) {
+
+            if (array_key_exists('menuType', $filters) && $filters['menuType'] !== $menuType) {
+                continue;
+            }
+
             try {
                 $this->syncWeek($dateRange, $menuType, $weekMenus);
             } catch (\Exception $e) {
@@ -150,23 +155,26 @@ class MenusSynchronizer
     /**
      * @param string $spreadsheetId
      * @param string $sheetRange
+     * @param array $filters
      * @return \Generator
      */
-    private function readWeeks($spreadsheetId, $sheetRange)
+    private function readWeeks($spreadsheetId, $sheetRange, array $filters = [])
     {
         $response = $this->sheetsService->spreadsheets->get($spreadsheetId);
-        $sheets = $response->getSheets();
+        $sheets = (array) $response->getSheets();
         $menuType = $this->determineMenuType($response->getProperties()->getTitle());
-
-        if (!count($sheets)) {
-            yield;
-        }
 
         /** @var \Google_Service_Sheets_Sheet[] $sheets */
         foreach ($sheets as $sheet) {
 
             $sheetTitle = $sheet->getProperties()->getTitle();
             $range = $sheetTitle.'!'.$sheetRange;
+            $dateRange = $this->getDateRange($sheetTitle);
+
+            if (array_key_exists('weekRange', $filters) && $filters['weekRange'] !== $dateRange) {
+                continue;
+            }
+
             $response = $this->sheetsService->spreadsheets_values->get($spreadsheetId, $range, [
                 'majorDimension' => 'COLUMNS',
             ]);
@@ -174,7 +182,7 @@ class MenusSynchronizer
             /** @var array $weekDayMenus */
             $weekDayMenus = $response->getValues();
 
-            yield [ $this->getDateRange($sheetTitle), $menuType, $weekDayMenus ];
+            yield [ $dateRange , $menuType, $weekDayMenus ];
         }
     }
 
