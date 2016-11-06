@@ -2,6 +2,7 @@
 
 
 use GuzzleHttp\Client;
+use Monolog\Logger;
 use Silex\Application;
 
 require_once __DIR__.'/vendor/autoload.php';
@@ -18,6 +19,11 @@ foreach ($parameters as $configKey => $configValue) {
 }
 
 $app->register(new \Silex\Provider\MonologServiceProvider());
+$app->extend('monolog', function(Logger $monolog) {
+    $monolog->pushHandler(new \Monolog\Handler\StreamHandler(__DIR__.'/var/logs/synchronizers.log'));
+
+    return $monolog;
+});
 $app->register(new Knp\Provider\ConsoleServiceProvider(), [
     'console.name'              => 'Lunches Actualizer',
     'console.version'           => '0.1.0',
