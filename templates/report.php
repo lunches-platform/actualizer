@@ -18,26 +18,26 @@
     <style type="text/css">
         h1 {
             margin-left: 0;
-            font-size: 4em;
+            font-size: 3em;
         }
         h2 {
             margin-left: 20px;
-            font-size: 3.5em;
-        }
-        h3 {
-            margin-left: 40px;
-            font-size: 3em;
-        }
-        h4 {
-            margin-left: 60px;
             font-size: 2.5em;
         }
-        h5 {
-            margin-left: 100px;
+        h3 {
+            margin-left: 20px;
             font-size: 2em;
         }
+        h4 {
+            margin-left: 40px;
+            font-size: 1.5em;
+        }
+        h5 {
+            margin-left: 40px;
+            font-size: 1em;
+        }
         table.user-orders {
-            margin-left: 100px;
+            margin-left: 40px;
         }
     </style>
 
@@ -48,18 +48,21 @@
     <?php if (count($ordersTree) > 0) : ?>
     <?php foreach ($ordersTree as $dateGroup): ?>
 
-        <h1><?=mb_strtoupper(strftime('%a', strtotime($dateGroup['name'])));?> (<?=$dateGroup['count']?>)</h1>
+            <h1><?=mb_strtoupper(strftime('%a %d %B', strtotime($dateGroup['name'])));?> (<?=$dateGroup['count']?>)</h1>
 
         <?php foreach ($dateGroup['subGroups'] as $companyGroup): ?>
             <h2><?=$this->e($companyGroup['name']);?> (<?=$companyGroup['count']?>)</h2>
 
-            <?php foreach ($companyGroup['subGroups'] as $addressGroup): ?>
-                <h3><?=$this->e($addressGroup['name']);?> (<?=$addressGroup['count']?>)</h3>
+            <?php foreach ($companyGroup['subGroups'] as $menuTypeGroup): ?>
+                <h3><?=$this->e($menuTypeGroup['name']);?> (<?=$menuTypeGroup['count']?>)</h3>
 
-                <?php foreach ($addressGroup['subGroups'] as $menuTypeGroup): ?>
-                    <h4><?=$this->e($menuTypeGroup['name']);?> (<?=$menuTypeGroup['count']?>)</h4>
+                <?php foreach ($menuTypeGroup['subGroups'] as $addressGroup): ?>
+                    <h4><?=$this->e($addressGroup['name']);?> (<?=$addressGroup['count']?>)</h4>
 
-                    <?php foreach ($menuTypeGroup['subGroups'] as $orderStrGroup): ?>
+<!--                --><?php //foreach ($addressGroup['subGroups'] as $menuTypeGroup): ?>
+<!--                    <h4>--><?//=$this->e($menuTypeGroup['name']);?><!-- (--><?//=$menuTypeGroup['count']?><!--)</h4>-->
+
+                    <?php foreach ($addressGroup['subGroups'] as $orderStrGroup): ?>
                         <h5><?=$this->e($orderStrGroup['name']);?> (<?=$orderStrGroup['count']?>)</h5>
 
                         <table class="table table-striped user-orders">
@@ -73,8 +76,8 @@
                         </table>
                     <?php endforeach; ?>
 
+<!--                --><?php //endforeach; ?>
                 <?php endforeach; ?>
-
 
             <?php endforeach; ?>
 
