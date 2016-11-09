@@ -1,11 +1,11 @@
 <?php
 
 
-namespace Lunches\Actualizer\Service;
+namespace Lunches\ETL\Service;
 
 use GuzzleHttp\Exception\ClientException;
-use Lunches\Actualizer\Entity\LineItem;
-use Lunches\Actualizer\Entity\Order;
+use Lunches\ETL\Entity\LineItem;
+use Lunches\ETL\Entity\Order;
 
 class OrdersService extends AbstractService
 {

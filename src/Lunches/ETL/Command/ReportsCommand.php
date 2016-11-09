@@ -1,9 +1,9 @@
 <?php
 
-namespace Lunches\Actualizer\Command;
+namespace Lunches\ETL\Command;
 
 use Knp\Command\Command;
-use Lunches\Actualizer\CookingPackingReport;
+use Lunches\ETL\CookingPackingReport;
 use Monolog\Logger;
 use Symfony\Bridge\Monolog\Handler\ConsoleHandler;
 use Symfony\Component\Console\Input\InputInterface;

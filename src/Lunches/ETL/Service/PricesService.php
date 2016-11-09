@@ -1,7 +1,7 @@
 <?php
 
 
-namespace Lunches\Actualizer\Service;
+namespace Lunches\ETL\Service;
 
 class PricesService extends AbstractService
 {

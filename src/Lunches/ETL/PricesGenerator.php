@@ -1,11 +1,11 @@
 <?php
 
 
-namespace Lunches\Actualizer;
+namespace Lunches\ETL;
 
 
-use Lunches\Actualizer\Service\PricesService;
-use Lunches\Actualizer\Entity\Menu;
+use Lunches\ETL\Service\PricesService;
+use Lunches\ETL\Entity\Menu;
 
 class PricesGenerator
 {

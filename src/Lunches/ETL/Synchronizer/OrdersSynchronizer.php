@@ -1,16 +1,16 @@
 <?php
 
-namespace Lunches\Actualizer\Synchronizer;
+namespace Lunches\ETL\Synchronizer;
 
 use Google_Service_Sheets;
 use GuzzleHttp\Exception\ClientException;
-use Lunches\Actualizer\Entity\Menu;
-use Lunches\Actualizer\Entity\Order;
-use Lunches\Actualizer\Service\MenusService;
-use Lunches\Actualizer\Service\OrdersService;
-use Lunches\Actualizer\Service\UsersService;
-use Lunches\Actualizer\ValueObject\Address;
-use Lunches\Actualizer\ValueObject\WeekDays;
+use Lunches\ETL\Entity\Menu;
+use Lunches\ETL\Entity\Order;
+use Lunches\ETL\Service\MenusService;
+use Lunches\ETL\Service\OrdersService;
+use Lunches\ETL\Service\UsersService;
+use Lunches\ETL\ValueObject\Address;
+use Lunches\ETL\ValueObject\WeekDays;
 use Monolog\Logger;
 use Webmozart\Assert\Assert;
 

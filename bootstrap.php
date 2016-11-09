@@ -25,7 +25,7 @@ $app->extend('monolog', function(Logger $monolog) {
     return $monolog;
 });
 $app->register(new Knp\Provider\ConsoleServiceProvider(), [
-    'console.name'              => 'Lunches Actualizer',
+    'console.name'              => 'Lunches ETL',
     'console.version'           => '0.1.0',
     'console.project_directory' => __DIR__.'/..'
 ]);
@@ -52,23 +52,23 @@ foreach ($instances as $instance) {
     $apiClient = $app["guzzle:{$key}-api"];
 
     $app["service:orders:{$key}"] = function (Application $app) use ($apiClient, $instance) {
-        return new \Lunches\Actualizer\Service\OrdersService($apiClient, $app['api:access-token'], $instance['company']);
+        return new \Lunches\ETL\Service\OrdersService($apiClient, $app['api:access-token'], $instance['company']);
     };
     $app["service:menus:{$key}"] = function (Application $app) use ($apiClient, $instance) {
-        return new \Lunches\Actualizer\Service\MenusService($apiClient, $app['api:access-token'], $instance['company']);
+        return new \Lunches\ETL\Service\MenusService($apiClient, $app['api:access-token'], $instance['company']);
     };
     $app["service:prices:{$key}"] = function (Application $app) use ($apiClient, $instance) {
-        return new \Lunches\Actualizer\Service\PricesService($apiClient, $app['api:access-token'], $instance['company']);
+        return new \Lunches\ETL\Service\PricesService($apiClient, $app['api:access-token'], $instance['company']);
     };
     $app["service:dishes:{$key}"] = function (Application $app) use ($apiClient, $instance) {
-        return new \Lunches\Actualizer\Service\DishesService($apiClient, $app['api:access-token'], $instance['company']);
+        return new \Lunches\ETL\Service\DishesService($apiClient, $app['api:access-token'], $instance['company']);
     };
     $app["service:users:{$key}"] = function (Application $app) use ($apiClient, $instance) {
-        return new \Lunches\Actualizer\Service\UsersService($apiClient, $app['api:access-token'], $instance['company']);
+        return new \Lunches\ETL\Service\UsersService($apiClient, $app['api:access-token'], $instance['company']);
     };
 
     $app["synchronizer:menus:{$key}"] = function(Application $app) use ($key) {
-        return new \Lunches\Actualizer\Synchronizer\MenusSynchronizer(
+        return new \Lunches\ETL\Synchronizer\MenusSynchronizer(
             $app['google:sheets-service'],
             $app["service:menus:{$key}"],
             $app["synchronizer:dishes:{$key}"],
@@ -77,13 +77,13 @@ foreach ($instances as $instance) {
         );
     };
     $app["synchronizer:dishes:{$key}"] = function(Application $app) use ($key) {
-        return new \Lunches\Actualizer\Synchronizer\DishesSynchronizer(
+        return new \Lunches\ETL\Synchronizer\DishesSynchronizer(
             $app["service:dishes:{$key}"],
             $app['logger']
         );
     };
     $app["synchronizer:orders:{$key}"] = function (Application $app) use ($key) {
-        return new \Lunches\Actualizer\Synchronizer\OrdersSynchronizer(
+        return new \Lunches\ETL\Synchronizer\OrdersSynchronizer(
             $app['google:sheets-service'],
             $app["service:menus:{$key}"],
             $app["service:users:{$key}"],
@@ -92,7 +92,7 @@ foreach ($instances as $instance) {
         );
     };
     $app["prices-generator:{$key}"] = function (Application $app) use ($key) {
-        return new \Lunches\Actualizer\PricesGenerator(
+        return new \Lunches\ETL\PricesGenerator(
             $app["service:prices:{$key}"]
         );
     };
@@ -104,7 +104,7 @@ $app['get-services'] = $app->protect(function ($name) use ($app, $instances) {
 });
 
 $app['cooking-packing-report'] = function (Application $app) {
-    return new \Lunches\Actualizer\CookingPackingReport(
+    return new \Lunches\ETL\CookingPackingReport(
         $app['get-services']('orders'),
         $app['get-services']('menus'),
         $app['plates'],

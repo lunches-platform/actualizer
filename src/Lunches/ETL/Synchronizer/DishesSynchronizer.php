@@ -1,9 +1,9 @@
 <?php
 
-namespace Lunches\Actualizer\Synchronizer;
+namespace Lunches\ETL\Synchronizer;
 
 use Monolog\Logger;
-use Lunches\Actualizer\Service\DishesService;
+use Lunches\ETL\Service\DishesService;
 
 /**
  * Class DishesSynchronizer

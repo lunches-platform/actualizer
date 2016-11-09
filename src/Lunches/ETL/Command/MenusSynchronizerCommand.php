@@ -1,9 +1,9 @@
 <?php
 
-namespace Lunches\Actualizer\Command;
+namespace Lunches\ETL\Command;
 
 use Knp\Command\Command;
-use Lunches\Actualizer\Synchronizer\OrdersSynchronizer;
+use Lunches\ETL\Synchronizer\MenusSynchronizer;
 use Monolog\Logger;
 use Symfony\Bridge\Monolog\Handler\ConsoleHandler;
 use Symfony\Component\Console\Input\InputArgument;
@@ -12,19 +12,20 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * Class OrdersSynchronizerCommand.
+ * Class MenusSynchronizerCommand.
  */
-class OrdersSynchronizerCommand extends Command
+class MenusSynchronizerCommand extends Command
 {
     /**
      * @throws \Symfony\Component\Console\Exception\InvalidArgumentException
      */
     protected function configure()
     {
-        $this->setName('synchronizer:orders')
-            ->addArgument('instance', InputArgument::REQUIRED, 'API instance (company) to synchronize orders')
-            ->addOption('menuType', null, InputOption::VALUE_OPTIONAL, 'One of Diet or Regular menu to synchronize')
-            ->addOption('weekRange', null, InputOption::VALUE_OPTIONAL, 'Week range with two dates: startDate and endDate in a format which menu from google sheet has');
+        $this->setName('synchronizer:menus')
+            ->addArgument('instance', InputArgument::REQUIRED, 'API instance (company) to synchronize menus')
+            ->addOption('menuType', null, InputOption::VALUE_OPTIONAL, 'One of Diet or Regular menu to synchronizer')
+            ->addOption('weekRange', null, InputOption::VALUE_OPTIONAL, 'Week range with two dates: startDate and endDate in a format which menu from google sheet has')
+        ;
     }
 
     /**
@@ -36,9 +37,9 @@ class OrdersSynchronizerCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        /** @var array $ordersSheets */
-        $ordersSheets = $this->getSilexApplication()['google-sheets:orders'];
-        $ordersSynchronizer = $this->getOrdersSynchronizer($input, $output);
+        /** @var array $menusSheets */
+        $menusSheets = $this->getSilexApplication()['google-sheets:menus'];
+        $menusSynchronizer = $this->getMenusSynchronizer($input, $output);
 
         $menuType = $input->getOption('menuType');
         $weekRange = $input->getOption('weekRange');
@@ -46,9 +47,11 @@ class OrdersSynchronizerCommand extends Command
             'menuType' => $menuType,
             'weekRange' => $weekRange,
         ]);
+
         try {
-            foreach ($ordersSheets as $sheet) {
-                $ordersSynchronizer->sync($sheet['id'], $sheet['range'], $filters);
+            foreach ($menusSheets as $sheet) {
+                $stat = $menusSynchronizer->sync($sheet['id'], $sheet['range'], $filters);
+                $output->writeln($stat);
             }
         } catch (\Exception $e) {
             $this->getConsoleLogger($output)->addError($e->getMessage());
@@ -58,13 +61,13 @@ class OrdersSynchronizerCommand extends Command
     }
 
     /**
-     * @param OutputInterface $output
      * @param InputInterface $input
-     * @return OrdersSynchronizer
+     * @param OutputInterface $output
+     * @return MenusSynchronizer
      * @throws \Symfony\Component\Console\Exception\InvalidArgumentException
      * @throws \InvalidArgumentException
      */
-    private function getOrdersSynchronizer(InputInterface $input, OutputInterface $output)
+    private function getMenusSynchronizer(InputInterface $input, OutputInterface $output)
     {
         $instance = $input->getArgument('instance');
         $instances = array_map(function ($instance) {
@@ -74,8 +77,9 @@ class OrdersSynchronizerCommand extends Command
         if (!in_array($instance, $instances, true)) {
             throw new \InvalidArgumentException('Provided instance not found. Please try again');
         }
-        /** @var OrdersSynchronizer $synchronizer */
-        $synchronizer = $this->getSilexApplication()["synchronizer:orders:{$instance}"];
+
+        /** @var MenusSynchronizer $synchronizer */
+        $synchronizer = $this->getSilexApplication()["synchronizer:menus:{$instance}"];
         $synchronizer->setLogger($this->getConsoleLogger($output));
         
         return $synchronizer;

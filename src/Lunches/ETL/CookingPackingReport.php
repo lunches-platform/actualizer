@@ -1,13 +1,13 @@
 <?php
 
 
-namespace Lunches\Actualizer;
+namespace Lunches\ETL;
 
 use League\Plates\Engine;
 use Monolog\Logger;
-use Lunches\Actualizer\Entity\Order;
-use Lunches\Actualizer\Service\MenusService;
-use Lunches\Actualizer\Service\OrdersService;
+use Lunches\ETL\Entity\Order;
+use Lunches\ETL\Service\MenusService;
+use Lunches\ETL\Service\OrdersService;
 
 class CookingPackingReport
 {
@@ -111,27 +111,27 @@ class CookingPackingReport
         $companyGroup['count']++;
         $companySubGroups = &$companyGroup['subGroups'];
 
-        $address = $order->address()->street();
-
-        $addressGroup = $this->getGroup($companySubGroups, $address);
-        $addressGroup['count']++;
-        $addressSubGroups = &$addressGroup['subGroups'];
-
         $menuType = $order->resolveMenuType($this->menus);
 
-        $menuTypeGroup = $this->getGroup($addressSubGroups, $menuType);
+        $menuTypeGroup = $this->getGroup($companySubGroups, $menuType);
         $menuTypeGroup['count']++;
         $menuTypeSubGroups = &$menuTypeGroup['subGroups'];
 
+        $address = $order->address()->street();
+
+        $addressGroup = $this->getGroup($menuTypeSubGroups, $address);
+        $addressGroup['count']++;
+        $addressSubGroups = &$addressGroup['subGroups'];
+
         $orderStr = $order->toDisplayString();
 
-        $orderStrGroup = $this->getGroup($menuTypeSubGroups, $orderStr);
+        $orderStrGroup = $this->getGroup($addressSubGroups, $orderStr);
         $orderStrGroup['count']++;
         $this->addOrder($orderStrGroup, $order);
 
-        $this->updateGroup($menuTypeSubGroups, $orderStr, $orderStrGroup);
-        $this->updateGroup($addressSubGroups, $menuType, $menuTypeGroup);
-        $this->updateGroup($companySubGroups, $address, $addressGroup);
+        $this->updateGroup($addressSubGroups, $orderStr, $orderStrGroup);
+        $this->updateGroup($menuTypeSubGroups, $address, $addressGroup);
+        $this->updateGroup($companySubGroups, $menuType, $menuTypeGroup);
         $this->updateGroup($dateSubGroups, $company, $companyGroup);
         $this->updateGroup($ordersTree, $date, $dateGroup);
     }
@@ -198,7 +198,7 @@ class CookingPackingReport
                     yield $order;
                 }
             } catch (\Exception $e) {
-                $this->logger->addError("Skip orders from {$ordersService->company()} company due to: ". $e->getMessage());
+                $this->logger->addWarning("Skip orders from {$ordersService->company()} company due to: ". $e->getMessage());
                 continue;
             }
         }

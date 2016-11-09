@@ -11,6 +11,6 @@
         "league/plates": "3.*"
     },
     "autoload": {
-        "psr-4": { "Lunches\\Actualizer\\": "src/Lunches/Actualizer" }
+        "psr-4": { "Lunches\\ETL\\": "src/Lunches/ETL" }
     }
 }

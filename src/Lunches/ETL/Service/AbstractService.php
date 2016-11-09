@@ -1,7 +1,7 @@
 <?php
 
 
-namespace Lunches\Actualizer\Service;
+namespace Lunches\ETL\Service;
 
 use GuzzleHttp\Client;
 
