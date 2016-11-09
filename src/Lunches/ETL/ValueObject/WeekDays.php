@@ -1,6 +1,6 @@
 <?php
 
-namespace Lunches\Actualizer\ValueObject;
+namespace Lunches\ETL\ValueObject;
 
 use Webmozart\Assert\Assert;
 

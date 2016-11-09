@@ -1,10 +1,10 @@
 <?php
 
 
-namespace Lunches\Actualizer\Entity;
+namespace Lunches\ETL\Entity;
 
 
-use Lunches\Actualizer\ValueObject\Address;
+use Lunches\ETL\ValueObject\Address;
 use Webmozart\Assert\Assert;
 
 class Order implements \JsonSerializable

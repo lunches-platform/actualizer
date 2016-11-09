@@ -1,7 +1,7 @@
 <?php
 
 
-namespace Lunches\Actualizer\Entity;
+namespace Lunches\ETL\Entity;
 
 
 use Webmozart\Assert\Assert;

@@ -10,7 +10,7 @@ require_once __DIR__ . '/../bootstrap.php';
 
 /** @var Application $console */
 $console = $app['console'];
-$console->add(new \Lunches\Actualizer\Command\MenusSynchronizerCommand());
-$console->add(new \Lunches\Actualizer\Command\OrdersSynchronizerCommand());
-$console->add(new \Lunches\Actualizer\Command\ReportsCommand());
+$console->add(new \Lunches\ETL\Command\MenusSynchronizerCommand());
+$console->add(new \Lunches\ETL\Command\OrdersSynchronizerCommand());
+$console->add(new \Lunches\ETL\Command\ReportsCommand());
 $console->run();

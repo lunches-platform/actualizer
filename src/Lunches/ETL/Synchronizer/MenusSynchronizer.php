@@ -1,14 +1,14 @@
 <?php
 
-namespace Lunches\Actualizer\Synchronizer;
+namespace Lunches\ETL\Synchronizer;
 
 use Google_Service_Sheets;
-use Lunches\Actualizer\Entity\Menu;
-use Lunches\Actualizer\PricesGenerator;
-use Lunches\Actualizer\ValueObject\WeekDays;
+use Lunches\ETL\Entity\Menu;
+use Lunches\ETL\PricesGenerator;
+use Lunches\ETL\ValueObject\WeekDays;
 use Monolog\Logger;
 use Webmozart\Assert\Assert;
-use Lunches\Actualizer\Service\MenusService;
+use Lunches\ETL\Service\MenusService;
 
 /**
  * Class MenusSynchronizer

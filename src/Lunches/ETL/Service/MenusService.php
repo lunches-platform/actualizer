@@ -1,10 +1,10 @@
 <?php
 
 
-namespace Lunches\Actualizer\Service;
+namespace Lunches\ETL\Service;
 
 use GuzzleHttp\Exception\ClientException;
-use Lunches\Actualizer\Entity\Menu;
+use Lunches\ETL\Entity\Menu;
 
 class MenusService extends AbstractService
 {
