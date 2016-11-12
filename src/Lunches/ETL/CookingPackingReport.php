@@ -84,7 +84,7 @@ class CookingPackingReport
 
     private function getWeekRange()
     {
-        if (new \DateTimeImmutable('now') > new \DateTimeImmutable('friday + 13 hours')) {
+        if (new \DateTimeImmutable('now') > new \DateTimeImmutable('friday this week + 13 hours')) {
             $startDate = new \DateTimeImmutable('monday next week');
             $endDate = new \DateTimeImmutable('friday next week');
         } else {
