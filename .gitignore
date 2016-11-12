@@ -3,3 +3,4 @@ vendor
 composer.phar
 parameters.php
 service-account.json
+var/logs/*

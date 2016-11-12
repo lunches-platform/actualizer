@@ -191,7 +191,7 @@ class CookingPackingReport
     private function fetchOrders(\DateTimeImmutable $startDate, \DateTimeImmutable $endDate)
     {
         foreach ($this->ordersServices as $ordersService) {
-            $this->logger->addInfo("Fetch paid orders of {$ordersService->company()} company");
+            $this->logger->addInfo("Fetch orders of {$ordersService->company()} company");
             try {
                 $orders = $ordersService->findBetween($startDate, $endDate);
                 foreach ($orders as $order) {
