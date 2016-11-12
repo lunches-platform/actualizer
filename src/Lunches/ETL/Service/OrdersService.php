@@ -31,19 +31,25 @@ class OrdersService extends AbstractService
 
         return $orders;
     }
+
     /**
      * @param \DateTimeImmutable $startDate
      * @param \DateTimeImmutable $endDate
+     * @param array $filters
      * @return Order[]
      */
-    public function findBetween(\DateTimeImmutable $startDate, \DateTimeImmutable $endDate)
+    public function findBetween(\DateTimeImmutable $startDate, \DateTimeImmutable $endDate, array $filters = [])
     {
+        $defaults = [
+            'paid' => 1,
+        ];
+        $filters = array_merge($defaults, $filters);
+
         $orders = $this->makeRequest('GET', '/orders', [
-            'query' => [
+            'query' => array_merge($filters, [
                 'startDate' => $startDate->format($this->apiDateFormat),
                 'endDate' => $endDate->format($this->apiDateFormat),
-                'paid' => 1,
-            ]
+            ])
         ]);
         $orders = array_map([$this, 'fromArray'], $orders);
 
