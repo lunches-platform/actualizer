@@ -78,6 +78,10 @@ class CookingPackingReport
             }
         }
 
+        usort($ordersTree, function ($a, $b) {
+            return $a['name'] > $b['name'];
+        });
+
         $this->logger->addInfo('Finish cooking & packing report generation ... Start rendering');
         return $this->render($ordersTree);
     }
