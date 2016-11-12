@@ -338,6 +338,7 @@ class Order implements \JsonSerializable
             'medium' => 'Средняя',
             'big' => 'Большая',
 
+            'main' => 'Основное блюдо',
             'meat' => 'Мясо',
             'garnish' => 'Гарнир',
             'salad' => 'Салат',
